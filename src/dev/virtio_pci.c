@@ -143,7 +143,8 @@ int virtio_pci_init(struct naut_info * naut)
 	     vdev->mem_start, vdev->mem_end);
 	     
 
-	list_add(&dev_list, &vdev->virtio_node);
+	list_add(&vdev->virtio_node,&dev_list);
+	//	list_add(&dev_list, &vdev->virtio_node);
       }
       
     }
