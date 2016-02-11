@@ -1,17 +1,19 @@
 #ifndef __VIRTIO_PCI
 #define __VIRTIO_PCI
 
-#define MAX_VRINGS 2
+#define MAX_VRINGS 4
 
 enum virtio_pci_dev_type { VIRTIO_PCI_NET, VIRTIO_PCI_BLOCK, VIRTIO_PCI_OTHER };
 
 struct virtio_pci_vring {
   uint64_t size_bytes;
-  uint8_t data[0];
+  uint8_t *data ;
+  uint8_t *aligned_data;
 };
 
 struct virtio_pci_dev {
   enum virtio_pci_dev_type type;
+  char name[32];
 
   // for our linked list of virtio devices
   struct list_head virtio_node;
@@ -29,9 +31,9 @@ struct virtio_pci_dev {
   uint64_t  mem_start;
   uint64_t  mem_end;
 
-  // The number of vrings
+  // The number of vrings in use
   uint8_t num_vrings;
-  struct virtio_pci_dev_vring *vring[2];
+  struct virtio_pci_vring vring[MAX_VRINGS];
 };
 
 int virtio_pci_init(struct naut_info * naut);
