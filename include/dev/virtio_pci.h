@@ -9,7 +9,7 @@ enum virtio_pci_dev_type { VIRTIO_PCI_NET, VIRTIO_PCI_BLOCK, VIRTIO_PCI_OTHER };
 
 struct virtio_packet_data{
   uint8_t src[6];
-  uint8_t dst[6];
+  uint8_t dst[6];  // FF:FF:FF:FF:FF:FF
   uint8_t type[2];
   uint8_t data[1000];
 };
