@@ -505,6 +505,27 @@ static int virtio_block_init(struct virtio_pci_dev *dev)
   return 0;
 }
 
+static int tx_handler()
+{
+  return 0;
+}
+
+static int packet_tx(struct virtio_pci_dev *dev, struct virtio_packet *tx)
+{
+  uint32_t ring = 1;
+  uint64_t addr = (uint64_t)tx;
+  uint32_t len = 0;
+  uint16_t flags = VIRTIO_NET_HDR_GSO_NONE; 
+  virtio_enque_request(dev, ring, addr, len, flags);
+  write_regw(dev, QUEUE_NOTIFY, 1);
+#ifndef NO_INTERRUPT
+  /* raise an interrupt */
+  register_irq_handler(1, tx_handler, NULL);
+#endif
+
+
+  return 0;
+}
 static int virtio_net_init(struct virtio_pci_dev *dev)
 {
   uint32_t val;
@@ -517,7 +538,14 @@ static int virtio_net_init(struct virtio_pci_dev *dev)
 
   val = read_regl(dev,DEVICE_FEATURES);
   DEBUG("device features: 0x%0x\n",val);
-
+   
+  struct virtio_packet *tx = malloc(sizeof(struct virtio_packet));
+  memset(tx, 0, sizeof(struct virtio_packet));
+  memset(&(tx->data.src), 0x01, 6);
+  memset(&(tx->data.dst), 0xff, 6);
+  memset(&(tx->data.type), 0x01, 2);
+   
+  packet_tx(dev, tx);
   return 0;
 }
 

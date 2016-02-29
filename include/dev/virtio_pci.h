@@ -7,6 +7,35 @@
 
 enum virtio_pci_dev_type { VIRTIO_PCI_NET, VIRTIO_PCI_BLOCK, VIRTIO_PCI_OTHER };
 
+struct virtio_packet_data{
+  uint8_t src[6];
+  uint8_t dst[6];
+  uint8_t type[2];
+  uint8_t data[1000];
+};
+
+struct virtio_packet_hdr{
+#define VIRTIO_NET_HDR_F_NEEDS_CSUM 1
+  uint8_t flags;
+#define VIRTIO_NET_HDR_GSO_NONE 0
+#define VIRTIO_NET_HDR_GSO_TCPV4 1
+#define VIRTIO_NET_HDR_GSO_UDP 3
+#define VIRTIO_NET_HDR_GSO_TCPV6 4
+#define VIRTIO_NET_HDR_GSO_ECN 0x80
+  uint8_t gso_type;
+  uint16_t hdr_len;
+  uint16_t gso_size;
+  uint16_t csum_start;
+  uint16_t csum_offset;
+  uint16_t num_buffers;
+};
+
+struct virtio_packet{
+   struct virtio_packet_hdr hdr;
+   struct virtio_packet_data data;
+};
+
+
 struct virtio_pci_vring {
   uint64_t size_bytes;
   // pointer to unaligned address supplied by nautilus
