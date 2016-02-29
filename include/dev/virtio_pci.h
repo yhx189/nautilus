@@ -1,14 +1,25 @@
 #ifndef __VIRTIO_PCI
 #define __VIRTIO_PCI
 
+#include <dev/virtio_ring.h>
+
 #define MAX_VRINGS 4
 
 enum virtio_pci_dev_type { VIRTIO_PCI_NET, VIRTIO_PCI_BLOCK, VIRTIO_PCI_OTHER };
 
 struct virtio_pci_vring {
   uint64_t size_bytes;
+  // pointer to unaligned address supplied by nautilus
+  // for memory management later (free)
   uint8_t *data ;
+  // aligned start of vring within data
   uint8_t *aligned_data;
+
+  // compatability with support code supplied in virtio docs
+  // the pointers here go into aligned_data
+  struct virtq vq;
+  // for processing respones 
+  unsigned int last_seen_used;
 };
 
 struct virtio_pci_dev {

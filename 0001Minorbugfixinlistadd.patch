@@ -1,0 +1,26 @@
+From bf94a6aeaf25886db4c5ae5a72de1ca166866533 Mon Sep 17 00:00:00 2001
+From: Peter Dinda <pdinda@northwestern.edu>
+Date: Thu, 11 Feb 2016 10:18:38 -0600
+Subject: [PATCH 1/2] Minor bug fix in list add
+
+---
+ src/dev/virtio_pci.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/src/dev/virtio_pci.c b/src/dev/virtio_pci.c
+index 6e70850..9217da7 100644
+--- a/src/dev/virtio_pci.c
++++ b/src/dev/virtio_pci.c
+@@ -143,7 +143,8 @@ int virtio_pci_init(struct naut_info * naut)
+ 	     vdev->mem_start, vdev->mem_end);
+ 	     
+ 
+-	list_add(&dev_list, &vdev->virtio_node);
++	list_add(&vdev->virtio_node,&dev_list);
++	//	list_add(&dev_list, &vdev->virtio_node);
+       }
+       
+     }
+-- 
+1.9.1
+

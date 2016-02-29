@@ -197,6 +197,7 @@ pci_copy_cfg_space(struct pci_dev *dev, struct pci_bus *bus)
   for (i=0;i<sizeof(dev->cfg);i+=4) {
     ((uint32_t*)(&dev->cfg))[i/4] = pci_cfg_readl(bus->num,dev->num,0,i);
   }
+
 }
 
 
@@ -351,6 +352,35 @@ pci_bus_scan (struct pci_info * pci)
     }
 }
 
+int pci_cfg_has_capability(uint8_t bus, uint8_t slot, uint8_t fun, uint8_t cap)
+{
+  uint16_t status;
+  uint8_t  curptr;
+  uint16_t  curcap;
+  int found = 0;
+  // does it have capabilities at all
+  status = pci_cfg_readw(bus,slot,fun,0x6);
+  if (!(status & 0x10)) { 
+    PCI_PRINT("No capabilities\n");
+    return 0;
+  }
+  curptr = pci_cfg_readw(bus,slot,fun,0x34) & 0x00fc; 
+  while (curptr) {
+    curcap = pci_cfg_readw(bus,slot,fun,curptr);
+    PCI_PRINT("Capability 0x%x at 0x%x (Next=0x%x)\n", curcap&0xff, curptr, curcap>>8);
+    if ((curcap&0xff) == cap) { 
+      found=1;
+    }
+    curptr = curcap>>8;
+  }
+  return found;
+}
+  
+int pci_cfg_set_capability(uint8_t bus, uint8_t slot, uint8_t fun, uint8_t cap, uint8_t val)
+{
+  PCI_PRINT("Write Me\n");
+  return -1;
+}
 
 int 
 pci_init (struct naut_info * naut)

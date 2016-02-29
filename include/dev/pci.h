@@ -63,6 +63,71 @@
 
 #define PCI_SUBCLASS_BRIDGE_PCI 0x4
 
+/* PCI Device Capabilities */
+#define  PCI_CAP_ID_PM          0x01    /* Power Management */
+#define  PCI_CAP_ID_AGP         0x02    /* Accelerated Graphics Port */
+#define  PCI_CAP_ID_VPD         0x03    /* Vital Product Data */
+#define  PCI_CAP_ID_SLOTID      0x04    /* Slot Identification */
+#define  PCI_CAP_ID_MSI         0x05    /* Message Signalled Interrupts */
+#define  PCI_CAP_ID_CHSWP       0x06    /* CompactPCI HotSwap */
+#define  PCI_CAP_ID_PCIX        0x07    /* PCI-X */
+#define  PCI_CAP_ID_HT          0x08    /* HyperTransport */
+#define  PCI_CAP_ID_VNDR        0x09    /* Vendor-Specific */
+#define  PCI_CAP_ID_DBG         0x0A    /* Debug port */
+#define  PCI_CAP_ID_CCRC        0x0B    /* CompactPCI Central Resource Control */
+#define  PCI_CAP_ID_SHPC        0x0C    /* PCI Standard Hot-Plug Controller */
+#define  PCI_CAP_ID_SSVID       0x0D    /* Bridge subsystem vendor/device ID */
+#define  PCI_CAP_ID_AGP3        0x0E    /* AGP Target PCI-PCI bridge */
+#define  PCI_CAP_ID_SECDEV      0x0F    /* Secure Device */
+#define  PCI_CAP_ID_EXP         0x10    /* PCI Express */
+#define  PCI_CAP_ID_MSIX        0x11    /* MSI-X */
+#define  PCI_CAP_ID_SATA        0x12    /* SATA Data/Index Conf. */
+#define  PCI_CAP_ID_AF          0x13    /* PCI Advanced Features */
+#define  PCI_CAP_ID_EA          0x14    /* PCI Enhanced Allocation */
+#define  PCI_CAP_ID_MAX         PCI_CAP_ID_EA
+#define PCI_CAP_LIST_NEXT       1       /* Next capability in the list */
+#define PCI_CAP_FLAGS           2       /* Capability defined flags (16 bits) */
+#define PCI_CAP_SIZEOF          4
+
+
+/* MSI */
+#define PCI_MSI_FLAGS           2       /* Message Control */
+#define  PCI_MSI_FLAGS_ENABLE   0x0001  /* MSI feature enabled */
+#define  PCI_MSI_FLAGS_QMASK    0x000e  /* Maximum queue size available */
+#define  PCI_MSI_FLAGS_QSIZE    0x0070  /* Message queue size configured */
+#define  PCI_MSI_FLAGS_64BIT    0x0080  /* 64-bit addresses allowed */
+#define  PCI_MSI_FLAGS_MASKBIT  0x0100  /* Per-vector masking capable */
+#define PCI_MSI_RFU             3       /* Rest of capability flags */
+#define PCI_MSI_ADDRESS_LO      4       /* Lower 32 bits */
+#define PCI_MSI_ADDRESS_HI      8       /* Upper 32 bits (if PCI_MSI_FLAGS_64BIT set) */
+#define PCI_MSI_DATA_32         8       /* 16 bits of data for 32-bit devices */
+#define PCI_MSI_MASK_32         12      /* Mask bits register for 32-bit devices */
+#define PCI_MSI_PENDING_32      16      /* Pending intrs for 32-bit devices */
+#define PCI_MSI_DATA_64         12      /* 16 bits of data for 64-bit devices */
+#define PCI_MSI_MASK_64         16      /* Mask bits register for 64-bit devices */
+#define PCI_MSI_PENDING_64      20      /* Pending intrs for 64-bit devices */
+ 
+/* MSI-X */
+#define PCI_MSIX_FLAGS          2       /* Message Control */
+#define  PCI_MSIX_FLAGS_QSIZE   0x07FF  /* Table size */
+#define  PCI_MSIX_FLAGS_MASKALL 0x4000  /* Mask all vectors for this function */
+#define  PCI_MSIX_FLAGS_ENABLE  0x8000  /* MSI-X enable */
+#define PCI_MSIX_TABLE          4       /* Table offset */
+#define  PCI_MSIX_TABLE_BIR     0x00000007 /* BAR index */
+#define  PCI_MSIX_TABLE_OFFSET  0xfffffff8 /* Offset into specified BAR */
+#define PCI_MSIX_PBA            8       /* Pending Bit Array offset */
+#define  PCI_MSIX_PBA_BIR       0x00000007 /* BAR index */
+#define  PCI_MSIX_PBA_OFFSET    0xfffffff8 /* Offset into specified BAR */
+#define PCI_MSIX_FLAGS_BIRMASK  PCI_MSIX_PBA_BIR /* deprecated */
+#define PCI_CAP_MSIX_SIZEOF     12      /* size of MSIX registers */
+
+#define PCI_MSIX_ENTRY_SIZE             16
+#define  PCI_MSIX_ENTRY_LOWER_ADDR      0
+#define  PCI_MSIX_ENTRY_UPPER_ADDR      4
+#define  PCI_MSIX_ENTRY_DATA            8
+#define  PCI_MSIX_ENTRY_VECTOR_CTRL     12
+#define   PCI_MSIX_ENTRY_CTRL_MASKBIT   1
+
 
 struct naut_info; 
 
@@ -184,6 +249,9 @@ uint32_t pci_cfg_readl(uint8_t bus, uint8_t slot, uint8_t fun, uint8_t off);
 
 void pci_cfg_writew(uint8_t bus, uint8_t slot, uint8_t fun, uint8_t off, uint16_t val);
 void pci_cfg_writel(uint8_t bus, uint8_t slot, uint8_t fun, uint8_t off, uint32_t val);
+
+int pci_cfg_has_capability(uint8_t bus, uint8_t slot, uint8_t fun, uint8_t cap);
+int pci_cfg_set_capability(uint8_t bus, uint8_t slot, uint8_t fun, uint8_t cap, uint8_t val);
 
 int pci_init (struct naut_info * naut);
 

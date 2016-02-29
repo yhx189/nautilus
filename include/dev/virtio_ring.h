@@ -76,14 +76,14 @@ struct virtq_desc {
         le16 flags;
         /* We chain unused descriptors via this, too */
         le16 next;
-} ;
+} __packed ;
 
 struct virtq_avail {
         le16 flags;
         le16 idx;
         le16 ring[];
         /* Only if VIRTIO_F_EVENT_IDX: le16 used_event; */
-} ;
+} __packed ;
 
 /* le32 is used here for ids for padding reasons. */
 struct virtq_used_elem {
@@ -91,14 +91,14 @@ struct virtq_used_elem {
         le32 id;
         /* Total length of the descriptor chain which was written to. */
         le32 len;
-} ;
+} __packed ;
 
 struct virtq_used {
         le16 flags;
         le16 idx;
         struct virtq_used_elem ring[];
         /* Only if VIRTIO_F_EVENT_IDX: le16 avail_event; */
-} ;
+} __packed;
 
 struct virtq {
         unsigned int num;
