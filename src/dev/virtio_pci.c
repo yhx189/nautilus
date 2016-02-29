@@ -430,7 +430,8 @@ static int virtio_enque_request(struct virtio_pci_dev *dev,
   vq->avail->idx++; // it is ok that this wraps around
   __asm__ __volatile__ ("" : : : "memory"); // software memory barrier
   __sync_synchronize(); // hardware memory barrier
-  
+   
+  DEBUG("enqueue finished\n"); 
   return 0;
 }
 
@@ -515,6 +516,7 @@ static int virtio_block_init(struct virtio_pci_dev *dev)
 
 static int tx_handler()
 {
+  //TODO
   return 0;
 }
 
