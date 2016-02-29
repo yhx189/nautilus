@@ -47,6 +47,7 @@
 
 #include <dev/apic.h>
 #include <dev/pci.h>
+#include <dev/virtio_pci.h>
 #include <dev/hpet.h>
 #include <dev/ioapic.h>
 #include <dev/timer.h>
@@ -229,6 +230,8 @@ init (unsigned long mbd,
 
     pci_init(naut);
 
+    virtio_pci_init(naut);
+ 
     nk_sched_init();
 
     /* we now switch away from the boot-time stack in low memory */
