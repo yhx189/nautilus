@@ -29,8 +29,14 @@ static struct list_head dev_list;
 #define QUEUE_NOTIFY    0x10   // 2 byte
 #define DEVICE_STATUS   0x12   // 1 byte
 #define ISR_STATUS      0x13   // 1 byte
-#define CONFIG_VEC      0x14   // 2 byte
-#define QUEUE_VEC       0x16   // 2 byte
+#define MAC_ADDR_1      0x14   // 1 byte
+#define MAC_ADDR_2      0x15   // 1 byte
+#define MAC_ADDR_3      0x16   // 1 byte
+#define MAC_ADDR_4      0x17   // 1 byte
+#define MAC_ADDR_5      0x18   // 1 byte
+#define MAC_ADDR_6      0x19   // 1 byte
+#define MAC_STATUS      0x1a   // 1 byte
+
 
 inline static uint32_t read_regl(struct virtio_pci_dev *dev, uint32_t offset)
 {
@@ -505,6 +511,27 @@ static int virtio_block_init(struct virtio_pci_dev *dev)
   return 0;
 }
 
+static int virtio_net_set_mac_address(struct virtio_pci_dev *dev)
+{
+  DEBUG("Setting MAC address of %s\n", dev->name);
+
+  // These values can be modified
+  uint8_t MACbyte1 = 0x22, MACbyte2 = 0xf0, MACbyte3 = 0x1d,
+          MACbyte4 = 0xbe, MACbyte5 = 0xfe, MACbyte6 = 0xed;
+
+  write_regb(dev, MAC_ADDR_1, MACbyte1);
+  write_regb(dev, MAC_ADDR_2, MACbyte2);
+  write_regb(dev, MAC_ADDR_3, MACbyte3);
+  write_regb(dev, MAC_ADDR_4, MACbyte4);
+  write_regb(dev, MAC_ADDR_5, MACbyte5);
+  write_regb(dev, MAC_ADDR_6, MACbyte6);
+
+  INFO("MAC address is set to %x:%x:%x:%x:%x:%x\n", MACbyte1, MACbyte2,
+                MACbyte3, MACbyte4, MACbyte5, MACbyte6);
+  return 0;
+}
+
+
 static int virtio_net_init(struct virtio_pci_dev *dev)
 {
   uint32_t val;
@@ -517,6 +544,7 @@ static int virtio_net_init(struct virtio_pci_dev *dev)
 
   val = read_regl(dev,DEVICE_FEATURES);
   DEBUG("device features: 0x%0x\n",val);
+  virtio_net_set_mac_address(dev);
 
   return 0;
 }
