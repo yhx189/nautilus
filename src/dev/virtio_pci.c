@@ -513,6 +513,18 @@ static int virtio_block_init(struct virtio_pci_dev *dev)
   return 0;
 }
 
+static int read_packet(void *state, uint8_t *dest)
+{
+  //TODO
+  return 0;
+}
+
+static int write_packet(void *state, uint8_t *dest_addr, uint8_t *data)
+{
+  //TODO
+  return 0;
+}
+
 static int tx_handler()
 {
   return 0;
