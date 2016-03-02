@@ -527,10 +527,18 @@ static int packet_tx(struct virtio_pci_dev *dev, struct virtio_packet *tx)
   uint32_t len = 0;
   uint16_t flags = VIRTIO_NET_HDR_GSO_NONE; 
   virtio_enque_request(dev, ring, addr, len, flags);
+  __asm__ __volatile__ ("" : : : "memory"); // sw mem barrier
+  __sync_synchronize(); // hw mem barrier
+
   write_regw(dev, QUEUE_NOTIFY, 1);
+  __asm__ __volatile__ ("" : : : "memory"); // sw mem barrier
+  __sync_synchronize(); // hw mem barrier
+
+
+
 #ifndef NO_INTERRUPT
   /* raise an interrupt */
-  register_irq_handler(1, tx_handler, NULL);
+  //register_irq_handler(1, tx_handler, NULL);
 #endif
 
 
@@ -569,7 +577,10 @@ static int virtio_net_init(struct virtio_pci_dev *dev)
 
   val = read_regl(dev,DEVICE_FEATURES);
   DEBUG("device features: 0x%0x\n",val);
-   
+  
+  write_regb(dev, DEVICE_STATUS, 0b111); 
+  val = read_regb(dev, DEVICE_STATUS);
+  DEBUG("device status: 0x%0x\n", val);
   struct virtio_packet *tx = malloc(sizeof(struct virtio_packet));
   memset(tx, 0, sizeof(struct virtio_packet));
   memset(&(tx->data.src), 0x01, 6);
