@@ -74,6 +74,15 @@ struct virtio_pci_dev {
   // The number of vrings in use
   uint8_t num_vrings;
   struct virtio_pci_vring vring[MAX_VRINGS];
+
+  // Interface to kernel
+  struct virtio_pci_dev_int interface;
+};
+
+struct virtio_pci_dev_int {
+  // Function pointers for kernel interface
+  int (*read_packet)(void *state, uint8_t *dest);
+  int (*write_packet)(void *state, uint8_t *dest_addr, uint8_t *data);
 };
 
 int virtio_pci_init(struct naut_info * naut);
