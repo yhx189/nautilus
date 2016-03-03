@@ -51,6 +51,13 @@ struct virtio_pci_vring {
   unsigned int last_seen_used;
 };
 
+struct virtio_pci_dev_int {
+  // Function pointers for kernel interface
+  int (*read_packet)(void *state, uint8_t *dest);
+  int (*write_packet)(void *state, uint8_t *dest_addr, uint8_t *data);
+};
+
+
 struct virtio_pci_dev {
   enum virtio_pci_dev_type type;
   char name[32];
@@ -78,13 +85,6 @@ struct virtio_pci_dev {
   // Interface to kernel
   struct virtio_pci_dev_int interface;
 };
-
-struct virtio_pci_dev_int {
-  // Function pointers for kernel interface
-  int (*read_packet)(void *state, uint8_t *dest);
-  int (*write_packet)(void *state, uint8_t *dest_addr, uint8_t *data);
-};
-
 int virtio_pci_init(struct naut_info * naut);
 int virtio_pci_deinit();
 
