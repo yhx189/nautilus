@@ -529,9 +529,12 @@ static int write_packet(void *state, uint8_t *dest_addr, uint8_t *data)
   return 0;
 }
 
-static int tx_handler()
+static int tx_handler(struct virtio_pci_dev *dev)
 {
-  //TODO
+  /* read the ISR status reg, and reset it to 0 */
+  uint32_t val = read_regb(dev, ISR_STATUS);
+  DEBUG("ISR STATUS register: %x\n", val);
+  write_regb(dev, ISR_STATUS, 0b0);
   return 0;
 }
 
@@ -551,16 +554,18 @@ static int packet_tx(struct virtio_pci_dev *dev, struct virtio_packet *tx)
 
 #ifndef NO_INTERRUPT
   /* raise an interrupt */
-  //register_irq_handler(1, tx_handler, NULL);
+  register_irq_handler(1, tx_handler, NULL);
 #endif
 
 
   return 0;
 }
 
-static int packet_rx(struct virtio_pci_dev *dev)
+static struct virtio_packet packet_rx(struct virtio_pci_dev *dev)
 {
-  return 0;
+  struct virtio_packet *ret = malloc(sizeof(struct virtio_packet));
+  memset(ret, 0, sizeof(struct virtio_packet));
+  return *ret;
 }
 
 
@@ -610,7 +615,7 @@ static int virtio_net_init(struct virtio_pci_dev *dev)
   packet_tx(dev, tx);
   virtio_net_set_mac_address(dev);
   while(1){
-    struct virtio_packet *rx = packet_rx(dev);
+    struct virtio_packet rx = packet_rx(dev);
   }
   return 0;
 }
