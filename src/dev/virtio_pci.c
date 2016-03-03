@@ -422,8 +422,11 @@ static int virtio_enque_request(struct virtio_pci_dev *dev,
   vq->desc[i].addr=addr;
   vq->desc[i].len=len;
   vq->desc[i].flags=flags;
-  vq->desc[i].next=0;
-  
+  vq->desc[i].next= i+1;
+  DEBUG("addr: %x\n", addr);
+  DEBUG("len: %d\n", len);
+  DEBUG("flags: %x\n", flags);
+  DEBUG("next: %d\n", i+1);
   vq->avail->ring[vq->avail->idx % vq->num] = i;
   __asm__ __volatile__ ("" : : : "memory"); // software memory barrier
   __sync_synchronize(); // hardware memory barrier
@@ -536,15 +539,13 @@ static int packet_tx(struct virtio_pci_dev *dev, struct virtio_packet *tx)
 {
   uint32_t ring = 1;
   uint64_t addr = (uint64_t)tx;
-  uint32_t len = 0;
+  uint32_t len = sizeof(struct virtio_packet);
   uint16_t flags = VIRTIO_NET_HDR_GSO_NONE; 
   virtio_enque_request(dev, ring, addr, len, flags);
   __asm__ __volatile__ ("" : : : "memory"); // sw mem barrier
   __sync_synchronize(); // hw mem barrier
 
   write_regw(dev, QUEUE_NOTIFY, 1);
-  __asm__ __volatile__ ("" : : : "memory"); // sw mem barrier
-  __sync_synchronize(); // hw mem barrier
 
 
 
@@ -556,6 +557,13 @@ static int packet_tx(struct virtio_pci_dev *dev, struct virtio_packet *tx)
 
   return 0;
 }
+
+static int packet_rx(struct virtio_pci_dev *dev)
+{
+  return 0;
+}
+
+
 static int virtio_net_set_mac_address(struct virtio_pci_dev *dev)
 {
   DEBUG("Setting MAC address of %s\n", dev->name);
@@ -601,7 +609,9 @@ static int virtio_net_init(struct virtio_pci_dev *dev)
    
   packet_tx(dev, tx);
   virtio_net_set_mac_address(dev);
-
+  while(1){
+    struct virtio_packet *rx = packet_rx(dev);
+  }
   return 0;
 }
 
