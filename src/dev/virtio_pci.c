@@ -2,7 +2,8 @@
 #include <dev/pci.h>
 #include <dev/virtio_pci.h>
 #include <dev/virtio_ring.h>
-
+#include <dev/apic.h>
+#include <nautilus/irq.h>
 #ifndef NAUT_CONFIG_DEBUG_VIRTIO_PCI
 #undef DEBUG_PRINT
 #define DEBUG_PRINT(fmt, args...)
@@ -20,6 +21,8 @@
 // list of virtio devices we are managing
 static struct list_head dev_list;
 
+
+static struct apic_dev * apic;
 // common register offsets
 #define DEVICE_FEATURES 0x0    // 4 byte
 #define GUEST_FEATURES  0x4    // 4 byte
@@ -434,6 +437,7 @@ static int virtio_enque_request(struct virtio_pci_dev *dev,
   __asm__ __volatile__ ("" : : : "memory"); // software memory barrier
   __sync_synchronize(); // hardware memory barrier
    
+  write_regw(dev, QUEUE_NOTIFY, 0x1);
   DEBUG("enqueue finished\n"); 
   return 0;
 }
@@ -532,12 +536,16 @@ static int write_packet(void *state, uint8_t *dest_addr, uint8_t *data)
 static int tx_handler(struct virtio_pci_dev *dev)
 {
   /* read the ISR status reg, and reset it to 0 */
-  uint32_t val = read_regb(dev, ISR_STATUS);
-  DEBUG("ISR STATUS register: %x\n", val);
-  write_regb(dev, ISR_STATUS, 0b0);
+  DEBUG("TX HANDLER\n");
   return 0;
 }
 
+static int tx_handler_(struct virtio_pci_dev *dev)
+{
+  /* read the ISR status reg, and reset it to 0 */
+  DEBUG("TX HANDLER 2\n");
+  return 0;
+}
 static int packet_tx(struct virtio_pci_dev *dev, struct virtio_packet *tx)
 {
   uint32_t ring = 1;
@@ -545,19 +553,33 @@ static int packet_tx(struct virtio_pci_dev *dev, struct virtio_packet *tx)
   uint32_t len = sizeof(struct virtio_packet);
   uint16_t flags = VIRTIO_NET_HDR_GSO_NONE; 
   virtio_enque_request(dev, ring, addr, len, flags);
-  __asm__ __volatile__ ("" : : : "memory"); // sw mem barrier
-  __sync_synchronize(); // hw mem barrier
+  
+  uint32_t val = read_regw(dev, QUEUE_NOTIFY);
+  DEBUG("QUEUE NOTIFY: %x\n", val);
 
-  write_regw(dev, QUEUE_NOTIFY, 1);
+
 
 
 
 #ifndef NO_INTERRUPT
   /* raise an interrupt */
-  register_irq_handler(1, tx_handler, NULL);
+  //register_irq_handler(1, tx_handler, NULL);
 #endif
+  uint32_t j = 0;
+  udelay(1000000);
+  for(j=0; j<8; j++){
+  uint32_t irr_status = apic_read(apic , APIC_GET_IRR(j));
+  DEBUG("irr status: %x\n", irr_status);
+  }
+  for(j=0;j<8;j++){
+  uint32_t isr_status = apic_read(apic , APIC_GET_ISR(j));
+  DEBUG("isr status: %x\n", isr_status);
+  
+  }
+  //nk_dump_mem(dev->mem_start, 32);
 
-
+  uint32_t used_idx = dev->vring[1].vq.used->idx;
+  DEBUG("used->idx: %d\n", used_idx);	
   return 0;
 }
 
@@ -596,27 +618,44 @@ static int virtio_net_init(struct virtio_pci_dev *dev)
 
   DEBUG("Net init of %s\n",dev->name);
 
-  write_regb(dev,DEVICE_STATUS,0x0); // driver resets device
-  write_regb(dev,DEVICE_STATUS,0b1); // driver acknowledges device
-  write_regb(dev,DEVICE_STATUS,0b11); // driver can drive device
+  //write_regb(dev,DEVICE_STATUS,0x0); // driver resets device
+  //write_regb(dev,DEVICE_STATUS,0x1); // driver acknowledges device
+  //write_regb(dev,DEVICE_STATUS,0x3); // driver can drive device
 
   val = read_regl(dev,DEVICE_FEATURES);
   DEBUG("device features: 0x%0x\n",val);
   
-  write_regb(dev, DEVICE_STATUS, 0b111); 
+  write_regl(dev, GUEST_FEATURES, val); 
+  val = read_regl(dev,GUEST_FEATURES);
+  DEBUG("guest features: 0x%0x\n",val);
+  
+  write_regb(dev, DEVICE_STATUS, 0x7); 
   val = read_regb(dev, DEVICE_STATUS);
   DEBUG("device status: 0x%0x\n", val);
+  
+  register_int_handler(235, tx_handler, NULL);
+  register_int_handler(245, tx_handler_, NULL);  
+
   struct virtio_packet *tx = malloc(sizeof(struct virtio_packet));
   memset(tx, 0, sizeof(struct virtio_packet));
   memset(&(tx->data.src), 0x01, 6);
   memset(&(tx->data.dst), 0xff, 6);
   memset(&(tx->data.type), 0x01, 2);
-   
-  packet_tx(dev, tx);
-  virtio_net_set_mac_address(dev);
-  while(1){
-    struct virtio_packet rx = packet_rx(dev);
-  }
+  
+  struct virtio_packet_hdr *hdr = malloc(sizeof(struct virtio_packet_hdr));
+  memset(hdr, 0, sizeof(struct virtio_packet_hdr));
+  struct virtio_packet_data *data = malloc(sizeof(struct virtio_packet_data));
+  memset(data, 0, sizeof(struct virtio_packet_data));
+  memset(data->src, 0x01, 6);
+  memset(data->dst, 0xff, 6);
+ 
+  packet_tx(dev, hdr);
+  packet_tx(dev, data);
+  //packet_tx(dev, hdr);
+  //virtio_net_set_mac_address(dev);
+  //while(1){
+   // struct virtio_packet rx = packet_rx(dev);
+  //}
   return 0;
 }
 
@@ -632,6 +671,10 @@ static int bringup_device(struct virtio_pci_dev *dev)
     return virtio_block_init(dev);
     break;
   case VIRTIO_PCI_NET:
+    write_regb(dev,DEVICE_STATUS,0x0); // driver resets device
+    write_regb(dev,DEVICE_STATUS,0x1); // driver acknowledges device
+    write_regb(dev,DEVICE_STATUS,0x3); // driver can drive device
+
     if (virtio_ring_init(dev)) { 
       ERROR("Failed to bring up device %s\n", dev->name);
       return -1;
@@ -673,7 +716,7 @@ int virtio_pci_init(struct naut_info * naut)
     return -1;
   }
 
-
+  apic = naut->sys.cpus[naut->sys.bsp_id]->apic;
   bringup_devices();
   
   return 0;

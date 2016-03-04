@@ -88,5 +88,4 @@ struct virtio_pci_dev {
 int virtio_pci_init(struct naut_info * naut);
 int virtio_pci_deinit();
 
-
 #endif

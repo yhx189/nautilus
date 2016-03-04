@@ -1,4 +1,4 @@
 #make menuconfig
 #make
 make isoimage
-qemu-system-x86_64 -smp 4 -m 2048 -serial stdio -cdrom nautilus.iso -netdev type=tap,id=net0 -device virtio-net-pci,netdev=net0 -net dump,file=/tmp/tmp.pcap
+qemu-system-x86_64 -smp 4 -m 2048 -serial stdio -cdrom nautilus.iso -netdev type=tap,id=net0 -device virtio-net-pci,netdev=net0 -net dump,file=/tmp/tmp.pcap 

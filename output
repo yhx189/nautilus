@@ -1,0 +1,140 @@
+Welcome to                                         
+    _   __               __   _  __                
+   / | / /____ _ __  __ / /_ (_)/ /__  __ _____    
+  /  |/ // __ `// / / // __// // // / / // ___/    
+ / /|  // /_/ // /_/ // /_ / // // /_/ /(__  )     
+/_/ |_/ \__,_/ \__,_/ \__//_//_/ \__,_//____/  
++===============================================+  
+ Kyle C. Hale (c) 2014 | Northwestern University   
++===============================================+  
+
+Detected AuthenticAMD Processor
+BOOTMEM: Setting up boot memory allocator
+BOOTMEM: Memory map[0] - [0x00000000 - 0x0009f000] <usable RAM>
+BOOTMEM: Memory map[1] - [0x000a0000 - 0x000a0000] <reserved>
+BOOTMEM: Memory map[2] - [0x000f0000 - 0x00100000] <reserved>
+BOOTMEM: Memory map[3] - [0x00100000 - 0x7fffe000] <usable RAM>
+BOOTMEM: Memory map[4] - [0x7fffe000 - 0x80000000] <reserved>
+BOOTMEM: Memory map[5] - [0xfffc0000 - 0x100000000] <reserved>
+BOOTMEM: Detected 2147.81216 MB of usable System RAM
+DEBUG: Multiboot info size 392B
+DEBUG: Cmd line: 
+DEBUG: Boot loader: GRUB 2.02~beta2-9ubuntu1.3
+DEBUG: Unhandled tag type (0xa)
+DEBUG: Multiboot2 memory map detected
+DEBUG: ELF size=20, num=0, entsize=0, shndx=0, sechdr=0x00000000
+DEBUG: Multiboot2 basic meminfo detected
+DEBUG: Unhandled tag type (0x5)
+DEBUG: fb addr: 0x000b8000, fb_width: 80, fb_height: 25
+DEBUG: Unhandled tag type (0xe)
+SMP: Verifying MP Floating Ptr Struct integrity...OK
+SMP: Parsing MP Table (entry count=22)
+SMP: Verifying MP Table integrity...OK
+SMP: Detected 4 CPUs
+ACPI: Parsing ACPI root table (at 0x000f08d0)
+ACPI: RSDP 00000000000f08d0 00014 (v00 BOCHS )
+ACPI: RSDT 000000007ffffcfc 00034 (v01 BOCHS  BXPCRSDT 00000001 BXPC 00000001)
+ACPI: root table checksum pass
+ACPI: FACP 000000007ffff1c0 00074 (v01 BOCHS  BXPCFACP 00000001 BXPC 00000001)
+ACPI: SSDT 000000007ffff234 00A00 (v01 BOCHS  BXPCSSDT 00000001 BXPC 00000001)
+ACPI: APIC 000000007ffffc34 00090 (v01 BOCHS  BXPCAPIC 00000001 BXPC 00000001)
+ACPI: HPET 000000007ffffcc4 00038 (v01 BOCHS  BXPCHPET 00000001 BXPC 00000001)
+ACPI: Done parsing ACPI root table
+NUMA: Parsing ACPI NUMA information...
+NUMA: DONE.
+Remapping phys mem [0x00000000 - 0x100000000] with 2MB pages
+KMEM: CPU 0 region affinity list:
+KMEM:     [Domain=0, 0x00000000-0x0009f000]
+KMEM:     [Domain=0, 0x00100000-0x7fffe000]
+KMEM: CPU 1 region affinity list:
+KMEM:     [Domain=0, 0x00000000-0x0009f000]
+KMEM:     [Domain=0, 0x00100000-0x7fffe000]
+KMEM: CPU 2 region affinity list:
+KMEM:     [Domain=0, 0x00000000-0x0009f000]
+KMEM:     [Domain=0, 0x00100000-0x7fffe000]
+KMEM: CPU 3 region affinity list:
+KMEM:     [Domain=0, 0x00000000-0x0009f000]
+KMEM:     [Domain=0, 0x00100000-0x7fffe000]
+BOOTMEM: Adding boot memory regions to the kernel memory pool:
+BOOTMEM:     [Domain 00 : Region 00] (0.00 MB)
+BOOTMEM:     [Domain 00 : Region 01] (2128.609280 MB)
+BOOTMEM:     =======
+BOOTMEM:     [TOTAL] (2128.609280 MB)
+Disabling legacy 8259 PIC
+Initializing i8254 PIT
+Initialize keyboard
+PCI: Probing PCI bus...
+PCI: 0000:00:00.0 8086:1237 (rev 2)
+PCI: 0000:00:01.0 8086:7000 (rev 0)
+PCI: Multifunction Device
+PCI: 0000:00:02.0 1013:b8 (rev 0)
+PCI: 0000:00:03.0 1af4:1000 (rev 0)
+VIRTIO_PCI: init
+DEBUG: VIRTIO_PCI: DEBUG: Discovering and naming virtio devices
+DEBUG: VIRTIO_PCI: DEBUG: Searching PCI bus 0 for Virtio devices
+DEBUG: VIRTIO_PCI: DEBUG: Device 3 is a 1af4:1000
+DEBUG: VIRTIO_PCI: DEBUG: Virtio Device Found (subsys_id=0x1)
+DEBUG: VIRTIO_PCI: DEBUG: Net Device
+DEBUG: VIRTIO_PCI: DEBUG: bar 0: 0xc001
+DEBUG: VIRTIO_PCI: DEBUG: bar 1: 0xfebd1000
+DEBUG: VIRTIO_PCI: DEBUG: bar 2: 0x0
+DEBUG: VIRTIO_PCI: DEBUG: bar 3: 0x0
+DEBUG: VIRTIO_PCI: DEBUG: bar 4: 0x0
+DEBUG: VIRTIO_PCI: DEBUG: bar 5: 0x0
+PCI: Capability 0x11 at 0x40 (Next=0x0)
+DEBUG: VIRTIO_PCI: DEBUG: device supports MSI-X
+VIRTIO_PCI: Adding virtio net device with name virtio-0-net : bus=0 dev=3 func=0: pci_intr=1 intr_vec=0 ioport_start=0x0000c000 ioport_end=0x0000c020 mem_start=0xfebd1000 mem_end=0xfebd2000
+DEBUG: VIRTIO_PCI: DEBUG: Device 2 is a 1013:b8
+DEBUG: VIRTIO_PCI: DEBUG: Device 1 is a 8086:7000
+DEBUG: VIRTIO_PCI: DEBUG: Device 0 is a 8086:1237
+DEBUG: VIRTIO_PCI: DEBUG: Bringing up virtio devices
+DEBUG: VIRTIO_PCI: DEBUG: Bringing up virtio-0-net
+DEBUG: VIRTIO_PCI: DEBUG: Ring init of virtio-0-net
+VIRTIO_PCI: Ring 0 has 0x100 slots
+VIRTIO_PCI: Ring 0 has size 0x3000 bytes
+DEBUG: VIRTIO_PCI: DEBUG: ring allocation at 0x01008018 for 0x4000 bytes
+DEBUG: VIRTIO_PCI: DEBUG: ring data at 0x01009000
+DEBUG: VIRTIO_PCI: DEBUG: ring num  = 0x100
+DEBUG: VIRTIO_PCI: DEBUG: ring desc at 0x01009000
+DEBUG: VIRTIO_PCI: DEBUG: ring avail at 0x0100a000
+DEBUG: VIRTIO_PCI: DEBUG: ring used at 0x0100b000
+VIRTIO_PCI: Ring 1 has 0x100 slots
+VIRTIO_PCI: Ring 1 has size 0x3000 bytes
+DEBUG: VIRTIO_PCI: DEBUG: ring allocation at 0x01010018 for 0x4000 bytes
+DEBUG: VIRTIO_PCI: DEBUG: ring data at 0x01011000
+DEBUG: VIRTIO_PCI: DEBUG: ring num  = 0x100
+DEBUG: VIRTIO_PCI: DEBUG: ring desc at 0x01011000
+DEBUG: VIRTIO_PCI: DEBUG: ring avail at 0x01012000
+DEBUG: VIRTIO_PCI: DEBUG: ring used at 0x01013000
+VIRTIO_PCI: Ring 2 has 0x40 slots
+VIRTIO_PCI: Ring 2 has size 0x2000 bytes
+DEBUG: VIRTIO_PCI: DEBUG: ring allocation at 0x01004018 for 0x3000 bytes
+DEBUG: VIRTIO_PCI: DEBUG: ring data at 0x01005000
+DEBUG: VIRTIO_PCI: DEBUG: ring num  = 0x40
+DEBUG: VIRTIO_PCI: DEBUG: ring desc at 0x01005000
+DEBUG: VIRTIO_PCI: DEBUG: ring avail at 0x01005400
+DEBUG: VIRTIO_PCI: DEBUG: ring used at 0x01006000
+DEBUG: VIRTIO_PCI: DEBUG: Net init of virtio-0-net
+DEBUG: VIRTIO_PCI: DEBUG: device features: 0x799fffe7
+DEBUG: VIRTIO_PCI: DEBUG: device status: 0x7
+DEBUG: VIRTIO_PCI: DEBUG: Allocate descriptor 0
+DEBUG: VIRTIO_PCI: DEBUG: addr: 1001018
+DEBUG: VIRTIO_PCI: DEBUG: len: 1026
+DEBUG: VIRTIO_PCI: DEBUG: flags: 0
+DEBUG: VIRTIO_PCI: DEBUG: next: 1
+DEBUG: VIRTIO_PCI: DEBUG: enqueue finished
+DEBUG: VIRTIO_PCI: DEBUG: irr status: 0
+DEBUG: VIRTIO_PCI: DEBUG: Setting MAC address of virtio-0-net
+VIRTIO_PCI: MAC address is set to 22:f0:1d:be:fe:ed
+SCHED: Initializing scheduler
+BOOTMEM: Reclaiming boot sections and data:
+BOOTMEM:     [Boot alloc. page map] (0.32 MB)
+BOOTMEM:     [Boot page tables and stack]     (0.4096 MB)
+BOOTMEM:     =======
+BOOTMEM:     [TOTAL] (2.109472 MB)
+SMP: Setting up cross-core IPI event queue
+DEBUG: SCHED: Initializing CPU 1
+DEBUG: SCHED: Initializing CPU 2
+DEBUG: SCHED: Initializing CPU 3
+MWAIT not supported
+Nautilus boot thread yielding (indefinitely)
