@@ -42,7 +42,8 @@ static struct apic_dev * apic;
 #define MAC_ADDR_6      0x19   // 1 byte
 #define MAC_STATUS      0x1a   // 1 byte
 
-
+#define RECEIVE_QUEUE   0x0
+#define TRANSMIT_QUEUE  0x1
 inline static uint32_t read_regl(struct virtio_pci_dev *dev, uint32_t offset)
 {
   uint32_t result;
@@ -425,7 +426,7 @@ static int virtio_enque_request(struct virtio_pci_dev *dev,
   vq->desc[i].addr=addr;
   vq->desc[i].len=len;
   vq->desc[i].flags=flags;
-  vq->desc[i].next= i+1;
+  vq->desc[i].next= (i+1) % vq->num;
   DEBUG("addr: %x\n", addr);
   DEBUG("len: %d\n", len);
   DEBUG("flags: %x\n", flags);
@@ -437,7 +438,7 @@ static int virtio_enque_request(struct virtio_pci_dev *dev,
   __asm__ __volatile__ ("" : : : "memory"); // software memory barrier
   __sync_synchronize(); // hardware memory barrier
    
-  write_regw(dev, QUEUE_NOTIFY, 0x1);
+  write_regw(dev, QUEUE_NOTIFY, TRANSMIT_QUEUE);
   DEBUG("enqueue finished\n"); 
   return 0;
 }
@@ -546,7 +547,7 @@ static int tx_handler_(struct virtio_pci_dev *dev)
   DEBUG("TX HANDLER 2\n");
   return 0;
 }
-static int packet_tx(struct virtio_pci_dev *dev, struct virtio_packet *tx)
+static int packet_tx(struct virtio_pci_dev *dev, uint64_t tx)
 {
   uint32_t ring = 1;
   uint64_t addr = (uint64_t)tx;
@@ -578,8 +579,12 @@ static int packet_tx(struct virtio_pci_dev *dev, struct virtio_packet *tx)
   }
   //nk_dump_mem(dev->mem_start, 32);
 
-  uint32_t used_idx = dev->vring[1].vq.used->idx;
+  uint32_t used_idx = dev->vring[ring].vq.used->idx;
   DEBUG("used->idx: %d\n", used_idx);	
+  DEBUG("desc addr: %x\n", dev->vring[ring].vq.desc->addr);
+  DEBUG("desc next: %x\n", dev->vring[ring].vq.desc->next);
+  
+
   return 0;
 }
 
@@ -633,8 +638,8 @@ static int virtio_net_init(struct virtio_pci_dev *dev)
   val = read_regb(dev, DEVICE_STATUS);
   DEBUG("device status: 0x%0x\n", val);
   
-  register_int_handler(235, tx_handler, NULL);
-  register_int_handler(245, tx_handler_, NULL);  
+  //register_int_handler(235, tx_handler, NULL);
+  //register_int_handler(245, tx_handler_, NULL);  
 
   struct virtio_packet *tx = malloc(sizeof(struct virtio_packet));
   memset(tx, 0, sizeof(struct virtio_packet));
@@ -649,8 +654,8 @@ static int virtio_net_init(struct virtio_pci_dev *dev)
   memset(data->src, 0x01, 6);
   memset(data->dst, 0xff, 6);
  
-  packet_tx(dev, hdr);
-  packet_tx(dev, data);
+  packet_tx(dev, (uint64_t)hdr);
+  packet_tx(dev, (uint64_t)data);
   //packet_tx(dev, hdr);
   //virtio_net_set_mac_address(dev);
   //while(1){
