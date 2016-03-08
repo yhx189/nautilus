@@ -230,7 +230,6 @@ init (unsigned long mbd,
 
     pci_init(naut);
 
-    virtio_pci_init(naut);
  
     nk_sched_init();
 
@@ -266,6 +265,7 @@ init (unsigned long mbd,
 
     runtime_init();
 
+    virtio_pci_init(naut);
     printk("Nautilus boot thread yielding (indefinitely)\n");
     /* we don't come back from this */
     idle(NULL, NULL);

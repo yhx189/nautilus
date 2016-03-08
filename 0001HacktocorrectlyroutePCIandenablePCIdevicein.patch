@@ -1,0 +1,102 @@
+From a91c1b3e83b7a187f5fbee95f7d747162adbeaac Mon Sep 17 00:00:00 2001
+From: Peter Dinda <pdinda@northwestern.edu>
+Date: Mon, 7 Mar 2016 15:05:50 -0600
+Subject: [PATCH] Hack to correctly route PCI and enable PCI device interrupts
+ on ioapic
+
+This is NOT even close to ready for prime time.   IT IS A BIG HACK
+---
+ src/dev/ioapic.c | 33 +++++++++++++++++++++++++++++----
+ 1 file changed, 29 insertions(+), 4 deletions(-)
+
+diff --git a/src/dev/ioapic.c b/src/dev/ioapic.c
+index d7d94a0..6844941 100644
+--- a/src/dev/ioapic.c
++++ b/src/dev/ioapic.c
+@@ -198,6 +198,8 @@ __ioapic_init (struct ioapic * ioapic, uint8_t ioapic_id)
+ {
+     int i;
+     struct nk_int_entry * ioint = NULL;
++    uint32_t pci_irqs[32];
++    uint32_t num_pci_irqs=0;
+ 
+     if (nk_map_page_nocache(ROUND_DOWN_TO_PAGE(ioapic->base), PTE_PRESENT_BIT|PTE_WRITABLE_BIT, PS_4K) == -1) {
+         panic("Could not map IOAPIC\n");
+@@ -244,11 +246,15 @@ __ioapic_init (struct ioapic * ioapic, uint8_t ioapic_id)
+             &(nk_get_nautilus_info()->sys.int_info.int_list), 
+             elm) {
+ 
++      IOAPIC_DEBUG("Entry: src_bus=0x%x, src_bus_irq=0x%x, dst_pin=0x%x\n",
++		   ioint->src_bus_id, ioint->src_bus_irq, ioint->dst_ioapic_intin);
++
+         uint8_t pol;
+         uint8_t trig;
+         uint8_t newirq;
+ 
+         if (ioint->dst_ioapic_id != ioapic->id) {
++	  IOAPIC_DEBUG("Wrong ioapic\n");
+             continue;
+         }
+ 
+@@ -260,12 +266,25 @@ __ioapic_init (struct ioapic * ioapic, uint8_t ioapic_id)
+             pol     = 0;
+             trig    = 0; 
+             newirq  = ioint->src_bus_irq;
++	    IOAPIC_DEBUG("ISA\n");
+         } else if (nk_int_matches_bus(ioint, "PCI", 3)) {
++	    // For PCI, the SRC "IRQ" encodes [slot]:[pin(2bits)] 
++	    uint32_t slot, pin;
++
++            slot = ioint->src_bus_irq >> 2;
++            pin = ioint->src_bus_irq & 0x3;
++ 
+             pol     = 1;
+             trig    = 1;
+-            // INT A, B, C, and D -> IRQs 16,17,18,19
+-            // lower order 2 bits identify which PCI int, upper 3 identify the device
+-            newirq  = 16 + (ioint->src_bus_irq & 0x3);
++            // PCI INT A, B, C, and D -> IRQs 16,17,18,19
++	    // round-robin mapping based on slot to
++            // balance the load since most devices just use A
++            // newirq  = 16 + ((slot+pin) & 0x3);
++            newirq = ioint->dst_ioapic_intin;
++
++	    pci_irqs[num_pci_irqs++] = newirq;
++
++	    IOAPIC_DEBUG("PCI slot 0x%x pin 0x%x ioapic pin %x - newirq = %x\n",slot,pin,ioint->dst_ioapic_intin, newirq);
+         } else {
+             pol     = 0;
+             trig    = 0;
+@@ -280,7 +299,6 @@ __ioapic_init (struct ioapic * ioapic, uint8_t ioapic_id)
+          * this way 
+          */
+         if (!nk_irq_is_assigned(newirq)) {
+-
+             IOAPIC_DEBUG("Unit %u assigning new IRQ 0x%x (src_bus=0x%x, src_bus_irq=0x%x, vector=0x%x) to IORED entry %u\n",
+                     ioapic->id,
+                     newirq,
+@@ -308,6 +326,7 @@ __ioapic_init (struct ioapic * ioapic, uint8_t ioapic_id)
+     IOAPIC_DEBUG("Masking all IORED entries\n");
+     /* being paranoid */
+     for (i = 0; i < ioapic->num_entries; i++) {
++      IOAPIC_DEBUG("Masking %x\n",i);
+         ioapic_mask_irq(ioapic, i);
+     }
+ 
+@@ -315,7 +334,13 @@ __ioapic_init (struct ioapic * ioapic, uint8_t ioapic_id)
+      * should probably be done somewhere else
+      */
+ #ifndef NAUT_CONFIG_XEON_PHI
++    IOAPIC_DEBUG("unmasking serial\n");
+     nk_unmask_irq(serial_get_irq());
++    // also unmask all PCI bus devices
++    for (i=0;i<num_pci_irqs;i++) { 
++      IOAPIC_DEBUG("unmasking pci 0x%x\n",pci_irqs[i]);
++      nk_unmask_irq(pci_irqs[i]);
++    }
+ #endif
+ 
+     ioapic_dump(ioapic);
+-- 
+1.9.1
+

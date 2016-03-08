@@ -549,18 +549,18 @@ static int tx_handler_(struct virtio_pci_dev *dev)
 }
 static int packet_tx(struct virtio_pci_dev *dev, uint64_t tx)
 {
-  uint32_t ring = 1;
+  uint32_t ring = TRANSMIT_QUEUE;
   uint64_t addr = (uint64_t)tx;
   uint32_t len = sizeof(struct virtio_packet);
   uint16_t flags = VIRTIO_NET_HDR_GSO_NONE; 
-  virtio_enque_request(dev, ring, addr, len, flags);
   
+  struct virtio_packet_hdr *hdr = malloc(sizeof(struct virtio_packet_hdr));
+  memset(hdr, 0, sizeof(struct virtio_packet_hdr));
+  
+  virtio_enque_request(dev, ring, (uint64_t)hdr, (uint32_t)(sizeof(struct virtio_packet_hdr)/4),flags);
+  virtio_enque_request(dev, ring, addr, len, flags);
   uint32_t val = read_regw(dev, QUEUE_NOTIFY);
   DEBUG("QUEUE NOTIFY: %x\n", val);
-
-
-
-
 
 #ifndef NO_INTERRUPT
   /* raise an interrupt */
@@ -581,8 +581,8 @@ static int packet_tx(struct virtio_pci_dev *dev, uint64_t tx)
 
   uint32_t used_idx = dev->vring[ring].vq.used->idx;
   DEBUG("used->idx: %d\n", used_idx);	
-  DEBUG("desc addr: %x\n", dev->vring[ring].vq.desc->addr);
-  DEBUG("desc next: %x\n", dev->vring[ring].vq.desc->next);
+  DEBUG("desc[0] addr: %x\n", dev->vring[ring].vq.desc[0].addr);
+  DEBUG("desc[1] addr: %x\n", dev->vring[ring].vq.desc[1].addr);
   
 
   return 0;
@@ -647,14 +647,11 @@ static int virtio_net_init(struct virtio_pci_dev *dev)
   memset(&(tx->data.dst), 0xff, 6);
   memset(&(tx->data.type), 0x01, 2);
   
-  struct virtio_packet_hdr *hdr = malloc(sizeof(struct virtio_packet_hdr));
-  memset(hdr, 0, sizeof(struct virtio_packet_hdr));
   struct virtio_packet_data *data = malloc(sizeof(struct virtio_packet_data));
   memset(data, 0, sizeof(struct virtio_packet_data));
   memset(data->src, 0x01, 6);
   memset(data->dst, 0xff, 6);
- 
-  packet_tx(dev, (uint64_t)hdr);
+  memset(data->type, 0x02, 2); 
   packet_tx(dev, (uint64_t)data);
   //packet_tx(dev, hdr);
   //virtio_net_set_mac_address(dev);

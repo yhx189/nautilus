@@ -69,6 +69,17 @@ PCI: 0000:00:01.0 8086:7000 (rev 0)
 PCI: Multifunction Device
 PCI: 0000:00:02.0 1013:b8 (rev 0)
 PCI: 0000:00:03.0 1af4:1000 (rev 0)
+SCHED: Initializing scheduler
+BOOTMEM: Reclaiming boot sections and data:
+BOOTMEM:     [Boot alloc. page map] (0.32 MB)
+BOOTMEM:     [Boot page tables and stack]     (0.4096 MB)
+BOOTMEM:     =======
+BOOTMEM:     [TOTAL] (2.109472 MB)
+SMP: Setting up cross-core IPI event queue
+DEBUG: SCHED: Initializing CPU 1
+DEBUG: SCHED: Initializing CPU 2
+DEBUG: SCHED: Initializing CPU 3
+MWAIT not supported
 VIRTIO_PCI: init
 DEBUG: VIRTIO_PCI: DEBUG: Discovering and naming virtio devices
 DEBUG: VIRTIO_PCI: DEBUG: Searching PCI bus 0 for Virtio devices
@@ -108,33 +119,46 @@ DEBUG: VIRTIO_PCI: DEBUG: ring avail at 0x01012000
 DEBUG: VIRTIO_PCI: DEBUG: ring used at 0x01013000
 VIRTIO_PCI: Ring 2 has 0x40 slots
 VIRTIO_PCI: Ring 2 has size 0x2000 bytes
-DEBUG: VIRTIO_PCI: DEBUG: ring allocation at 0x01004018 for 0x3000 bytes
-DEBUG: VIRTIO_PCI: DEBUG: ring data at 0x01005000
+DEBUG: VIRTIO_PCI: DEBUG: ring allocation at 0x01018018 for 0x3000 bytes
+DEBUG: VIRTIO_PCI: DEBUG: ring data at 0x01019000
 DEBUG: VIRTIO_PCI: DEBUG: ring num  = 0x40
-DEBUG: VIRTIO_PCI: DEBUG: ring desc at 0x01005000
-DEBUG: VIRTIO_PCI: DEBUG: ring avail at 0x01005400
-DEBUG: VIRTIO_PCI: DEBUG: ring used at 0x01006000
+DEBUG: VIRTIO_PCI: DEBUG: ring desc at 0x01019000
+DEBUG: VIRTIO_PCI: DEBUG: ring avail at 0x01019400
+DEBUG: VIRTIO_PCI: DEBUG: ring used at 0x0101a000
 DEBUG: VIRTIO_PCI: DEBUG: Net init of virtio-0-net
 DEBUG: VIRTIO_PCI: DEBUG: device features: 0x799fffe7
+DEBUG: VIRTIO_PCI: DEBUG: guest features: 0x3821
 DEBUG: VIRTIO_PCI: DEBUG: device status: 0x7
 DEBUG: VIRTIO_PCI: DEBUG: Allocate descriptor 0
-DEBUG: VIRTIO_PCI: DEBUG: addr: 1001018
-DEBUG: VIRTIO_PCI: DEBUG: len: 1026
+DEBUG: VIRTIO_PCI: DEBUG: addr: 1002598
+DEBUG: VIRTIO_PCI: DEBUG: len: 3
 DEBUG: VIRTIO_PCI: DEBUG: flags: 0
 DEBUG: VIRTIO_PCI: DEBUG: next: 1
 DEBUG: VIRTIO_PCI: DEBUG: enqueue finished
+DEBUG: VIRTIO_PCI: DEBUG: Allocate descriptor 1
+DEBUG: VIRTIO_PCI: DEBUG: addr: 1006018
+DEBUG: VIRTIO_PCI: DEBUG: len: 1026
+DEBUG: VIRTIO_PCI: DEBUG: flags: 0
+DEBUG: VIRTIO_PCI: DEBUG: next: 2
+DEBUG: VIRTIO_PCI: DEBUG: enqueue finished
+DEBUG: VIRTIO_PCI: DEBUG: QUEUE NOTIFY: ffff
 DEBUG: VIRTIO_PCI: DEBUG: irr status: 0
-DEBUG: VIRTIO_PCI: DEBUG: Setting MAC address of virtio-0-net
-VIRTIO_PCI: MAC address is set to 22:f0:1d:be:fe:ed
-SCHED: Initializing scheduler
-BOOTMEM: Reclaiming boot sections and data:
-BOOTMEM:     [Boot alloc. page map] (0.32 MB)
-BOOTMEM:     [Boot page tables and stack]     (0.4096 MB)
-BOOTMEM:     =======
-BOOTMEM:     [TOTAL] (2.109472 MB)
-SMP: Setting up cross-core IPI event queue
-DEBUG: SCHED: Initializing CPU 1
-DEBUG: SCHED: Initializing CPU 2
-DEBUG: SCHED: Initializing CPU 3
-MWAIT not supported
+DEBUG: VIRTIO_PCI: DEBUG: irr status: 0
+DEBUG: VIRTIO_PCI: DEBUG: irr status: 0
+DEBUG: VIRTIO_PCI: DEBUG: irr status: 0
+DEBUG: VIRTIO_PCI: DEBUG: irr status: 0
+DEBUG: VIRTIO_PCI: DEBUG: irr status: 0
+DEBUG: VIRTIO_PCI: DEBUG: irr status: 0
+DEBUG: VIRTIO_PCI: DEBUG: irr status: 0
+DEBUG: VIRTIO_PCI: DEBUG: isr status: 0
+DEBUG: VIRTIO_PCI: DEBUG: isr status: 0
+DEBUG: VIRTIO_PCI: DEBUG: isr status: 0
+DEBUG: VIRTIO_PCI: DEBUG: isr status: 0
+DEBUG: VIRTIO_PCI: DEBUG: isr status: 0
+DEBUG: VIRTIO_PCI: DEBUG: isr status: 0
+DEBUG: VIRTIO_PCI: DEBUG: isr status: 0
+DEBUG: VIRTIO_PCI: DEBUG: isr status: 0
+DEBUG: VIRTIO_PCI: DEBUG: used->idx: 2
+DEBUG: VIRTIO_PCI: DEBUG: desc[0] addr: 1002598
+DEBUG: VIRTIO_PCI: DEBUG: desc[1] addr: 1006018
 Nautilus boot thread yielding (indefinitely)
