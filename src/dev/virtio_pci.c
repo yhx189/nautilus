@@ -437,8 +437,8 @@ static int virtio_enque_request(struct virtio_pci_dev *dev,
   vq->avail->idx++; // it is ok that this wraps around
   __asm__ __volatile__ ("" : : : "memory"); // software memory barrier
   __sync_synchronize(); // hardware memory barrier
-   
-  write_regw(dev, QUEUE_NOTIFY, TRANSMIT_QUEUE);
+  
+  DEBUG("before notify\n"); 
   DEBUG("enqueue finished\n"); 
   return 0;
 }
@@ -552,16 +552,17 @@ static int packet_tx(struct virtio_pci_dev *dev, uint64_t tx)
   uint32_t ring = TRANSMIT_QUEUE;
   uint64_t addr = (uint64_t)tx;
   uint32_t len = sizeof(struct virtio_packet);
-  uint16_t flags = VIRTIO_NET_HDR_GSO_NONE; 
+  uint16_t flags = VIRTQ_DESC_F_NEXT; 
   
   struct virtio_packet_hdr *hdr = malloc(sizeof(struct virtio_packet_hdr));
   memset(hdr, 0, sizeof(struct virtio_packet_hdr));
   
   virtio_enque_request(dev, ring, (uint64_t)hdr, (uint32_t)(sizeof(struct virtio_packet_hdr)/4),flags);
-  virtio_enque_request(dev, ring, addr, len, flags);
+  virtio_enque_request(dev, ring, addr, len, 0);
   uint32_t val = read_regw(dev, QUEUE_NOTIFY);
   DEBUG("QUEUE NOTIFY: %x\n", val);
 
+  write_regw(dev, QUEUE_NOTIFY, TRANSMIT_QUEUE);
 #ifndef NO_INTERRUPT
   /* raise an interrupt */
   //register_irq_handler(1, tx_handler, NULL);
@@ -638,8 +639,7 @@ static int virtio_net_init(struct virtio_pci_dev *dev)
   val = read_regb(dev, DEVICE_STATUS);
   DEBUG("device status: 0x%0x\n", val);
   
-  //register_int_handler(235, tx_handler, NULL);
-  //register_int_handler(245, tx_handler_, NULL);  
+  register_int_handler(228, tx_handler, NULL);
 
   struct virtio_packet *tx = malloc(sizeof(struct virtio_packet));
   memset(tx, 0, sizeof(struct virtio_packet));
