@@ -522,16 +522,15 @@ static int virtio_block_init(struct virtio_pci_dev *dev)
   return 0;
 }
 
-static int read_packet(void *state, uint8_t *dest)
+static int read_packet(void *state, uint64_t *dest)
 {
   //TODO
   return 0;
 }
 
-static int write_packet(void *state, uint8_t *dest_addr, uint8_t *data)
+static int write_packet(void *state, uint64_t *dest_addr, uint64_t *data)
 {
-  //TODO
-  return 0;
+  return packet_tx(state->dev, data);
 }
 
 static int tx_handler(struct virtio_pci_dev *dev)
@@ -638,7 +637,11 @@ static int virtio_net_init(struct virtio_pci_dev *dev)
   write_regb(dev, DEVICE_STATUS, 0x7); 
   val = read_regb(dev, DEVICE_STATUS);
   DEBUG("device status: 0x%0x\n", val);
-  
+
+  dev->interface = malloc(sizeof(struct virtio_pci_dev));
+  dev->interface.read_packet = read_packet;
+  dev->interface.write_packet = write_packet;
+
   register_int_handler(228, tx_handler, NULL);
 
   struct virtio_packet *tx = malloc(sizeof(struct virtio_packet));
@@ -676,6 +679,9 @@ static int bringup_device(struct virtio_pci_dev *dev)
     write_regb(dev,DEVICE_STATUS,0x0); // driver resets device
     write_regb(dev,DEVICE_STATUS,0x1); // driver acknowledges device
     write_regb(dev,DEVICE_STATUS,0x3); // driver can drive device
+
+    struct virtio_net_state dev_state = malloc(sizeof(struct virtio_net_state));
+    dev_state->dev = dev;
 
     if (virtio_ring_init(dev)) { 
       ERROR("Failed to bring up device %s\n", dev->name);
