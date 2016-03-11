@@ -522,9 +522,16 @@ static int virtio_block_init(struct virtio_pci_dev *dev)
   return 0;
 }
 
-static int read_packet(void *state, uint8_t *dest)
+static int read_packet(struct virtio_pci_dev *dev,				  
+				uint32_t ring,
+	        	        uint64_t addr,
+				uint32_t len,
+				uint16_t flags)
 {
-  //TODO
+  struct virtio_pci_vring *vring = &dev->vring[ring];
+  volatile struct virtq *vq = &vring->vq;
+  DEBUG("data: %x", addr);
+
   return 0;
 }
 
@@ -589,11 +596,26 @@ static int packet_tx(struct virtio_pci_dev *dev, uint64_t tx)
   return 0;
 }
 
-static struct virtio_packet packet_rx(struct virtio_pci_dev *dev)
+
+
+static int packet_rx(struct virtio_pci_dev *dev)
 {
   struct virtio_packet *ret = malloc(sizeof(struct virtio_packet));
   memset(ret, 0, sizeof(struct virtio_packet));
-  return *ret;
+  
+  uint32_t ring = RECEIVE_QUEUE;
+  uint32_t len = sizeof(struct virtio_packet);
+  uint16_t flags = VIRTQ_DESC_F_NEXT; 
+
+  void (*call_back)(struct virtio_pci_dev, uint32_t,uint64_t, uint32_t, uint16_t);
+  call_back = &read_packet;
+  if(virtio_dequeue_responses(dev, ring, call_back)){
+     DEBUG("read packet error\n");
+     return -1;
+  }
+
+  
+   return 0;
 }
 
 
