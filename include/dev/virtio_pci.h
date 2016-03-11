@@ -51,10 +51,17 @@ struct virtio_pci_vring {
   unsigned int last_seen_used;
 };
 
+struct virtio_net_state {
+  //State information for net device
+  // (not quite sure about what goes in here but we can add to this
+  //  as needed)
+  struct virtio_pci_dev *dev;
+};
+
 struct virtio_pci_dev_int {
   // Function pointers for kernel interface
-  int (*read_packet)(void *state, uint8_t *dest);
-  int (*write_packet)(void *state, uint8_t *dest_addr, uint8_t *data);
+  int (*read_packet)(void *state, uint64_t *dest);
+  int (*write_packet)(void *state, uint64_t *dest_addr, uint64_t *data);
 };
 
 
