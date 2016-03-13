@@ -11,8 +11,8 @@ struct virtio_packet_data{
   uint8_t src[6];
   uint8_t dst[6];  // FF:FF:FF:FF:FF:FF
   uint8_t type[2];
-  uint8_t data[1000];
-};
+  uint8_t data[100];
+}__packed;
 
 struct virtio_packet_hdr{
 #define VIRTIO_NET_HDR_F_NEEDS_CSUM 1
@@ -28,7 +28,7 @@ struct virtio_packet_hdr{
   uint16_t csum_start;
   uint16_t csum_offset;
   uint16_t num_buffers;
-};
+}__packed;
 
 struct virtio_packet{
    struct virtio_packet_hdr hdr;

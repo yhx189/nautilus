@@ -432,13 +432,13 @@ static int virtio_enque_request(struct virtio_pci_dev *dev,
   DEBUG("flags: %x\n", flags);
   DEBUG("next: %d\n", i+1);
   vq->avail->ring[vq->avail->idx % vq->num] = i;
+  /*
   __asm__ __volatile__ ("" : : : "memory"); // software memory barrier
   __sync_synchronize(); // hardware memory barrier
   vq->avail->idx++; // it is ok that this wraps around
   __asm__ __volatile__ ("" : : : "memory"); // software memory barrier
   __sync_synchronize(); // hardware memory barrier
-  
-  DEBUG("before notify\n"); 
+  */
   DEBUG("enqueue finished\n"); 
   return 0;
 }
@@ -539,6 +539,14 @@ static int tx_handler(struct virtio_pci_dev *dev)
 {
   /* read the ISR status reg, and reset it to 0 */
   DEBUG("TX HANDLER\n");
+  /* clear the used ring*/
+  uint32_t isr_status = read_regb(dev, ISR_STATUS);
+  DEBUG("isr status: %x\n", isr_status);
+  uint32_t ring = TRANSMIT_QUEUE;
+  
+  
+  //virtio_dequeue_request(dev, ring, (uint64_t)hdr, (uint32_t)(sizeof(struct virtio_packet_hdr)/4),flags);
+  
   return 0;
 }
 
@@ -552,18 +560,22 @@ static int packet_tx(struct virtio_pci_dev *dev, uint64_t tx)
 {
   uint32_t ring = TRANSMIT_QUEUE;
   uint64_t addr = (uint64_t)tx;
-  uint32_t len = sizeof(struct virtio_packet);
+  uint32_t len = sizeof(struct virtio_packet_data);
   uint16_t flags = VIRTQ_DESC_F_NEXT; 
   
+  volatile struct virtq *vq = &dev->vring[ring].vq;
   struct virtio_packet_hdr *hdr = malloc(sizeof(struct virtio_packet_hdr));
   memset(hdr, 0, sizeof(struct virtio_packet_hdr));
-  
+  hdr->hdr_len = sizeof(struct virtio_packet_hdr); 
   virtio_enque_request(dev, ring, (uint64_t)hdr, (uint32_t)(sizeof(struct virtio_packet_hdr)/4),flags);
-  virtio_enque_request(dev, ring, addr, len, 0);
-  uint32_t val = read_regw(dev, QUEUE_NOTIFY);
-  DEBUG("QUEUE NOTIFY: %x\n", val);
 
-  write_regw(dev, QUEUE_NOTIFY, TRANSMIT_QUEUE);
+ virtio_enque_request(dev, ring, addr, len, 0);
+  __asm__ __volatile__ ("" : : : "memory"); // software memory barrier
+  __sync_synchronize(); // hardware memory barrier
+  vq->avail->idx++; // it is ok that this wraps around
+  __asm__ __volatile__ ("" : : : "memory"); // software memory barrier
+  __sync_synchronize(); // hardware memory barrier
+   write_regw(dev, QUEUE_NOTIFY, TRANSMIT_QUEUE);
 #ifndef NO_INTERRUPT
   /* raise an interrupt */
   //register_irq_handler(1, tx_handler, NULL);
@@ -621,7 +633,9 @@ static int packet_rx(struct virtio_pci_dev *dev)
   DEBUG("RX: used->idx: %d\n", used_idx);
   
 
-  write_regw(dev, QUEUE_NOTIFY, RECEIVE_QUEUE);
+  if(used_idx){
+     write_regw(dev, QUEUE_NOTIFY, RECEIVE_QUEUE);
+  }
 /*  void (*call_back)(struct virtio_pci_dev, uint32_t,uint64_t, uint32_t, uint16_t);
   call_back = &read_packet;
   if(virtio_dequeue_responses(dev, ring, call_back)){
@@ -707,7 +721,7 @@ static int virtio_net_init(struct virtio_pci_dev *dev)
   uint32_t mac6 = read_regb(dev, MAC_ADDR_6);
   DEBUG("MAC address: %x:%x:%x:%x:%x:%x\n", mac1, mac2, mac3, mac4, mac5, mac6);
   while(1){
-	packet_rx(dev);
+	//packet_rx(dev);
   }
   //virtio_net_set_mac_address(dev);
   //while(1){
