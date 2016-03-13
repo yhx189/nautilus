@@ -605,14 +605,30 @@ static int packet_rx(struct virtio_pci_dev *dev)
   uint32_t ring = RECEIVE_QUEUE;
   uint32_t len = sizeof(struct virtio_packet);
   uint16_t flags = VIRTQ_DESC_F_NEXT; 
+  
+  /* to receive data, the driver adds an empty buffer to the avail ring,
+         increments the index in the avai ring, 
+     and notify the device */
+  struct virtio_packet_hdr *hdr = malloc(sizeof(struct virtio_packet_hdr));
+  memset(hdr, 0, sizeof(struct virtio_packet_hdr));
+   
+  struct virtio_packet_data *data = malloc(sizeof(struct virtio_packet_data));
+  memset(data, 0, sizeof(struct virtio_packet_data));
+  virtio_enque_request(dev, ring, (uint64_t)hdr, (uint32_t)(sizeof(struct virtio_packet_hdr)/4),flags);
+  virtio_enque_request(dev, ring, (uint64_t)data,(uint32_t)(sizeof(struct virtio_packet_data)/4), 0);
+  
+  uint32_t used_idx = dev->vring[ring].vq.used->idx;
+  DEBUG("RX: used->idx: %d\n", used_idx);
+  
 
-  void (*call_back)(struct virtio_pci_dev, uint32_t,uint64_t, uint32_t, uint16_t);
+  write_regw(dev, QUEUE_NOTIFY, RECEIVE_QUEUE);
+/*  void (*call_back)(struct virtio_pci_dev, uint32_t,uint64_t, uint32_t, uint16_t);
   call_back = &read_packet;
   if(virtio_dequeue_responses(dev, ring, call_back)){
      DEBUG("read packet error\n");
      return -1;
   }
-
+*/
   
    return 0;
 }
@@ -683,7 +699,16 @@ static int virtio_net_init(struct virtio_pci_dev *dev)
   memset(data->dst, 0xff, 6);
   memset(data->type, 0x02, 2); 
   packet_tx(dev, (uint64_t)data);
-  //packet_tx(dev, hdr);
+  uint32_t mac1 = read_regb(dev, MAC_ADDR_1);
+  uint32_t mac2 = read_regb(dev, MAC_ADDR_2);
+  uint32_t mac3 = read_regb(dev, MAC_ADDR_3);
+  uint32_t mac4 = read_regb(dev, MAC_ADDR_4);
+  uint32_t mac5 = read_regb(dev, MAC_ADDR_5);
+  uint32_t mac6 = read_regb(dev, MAC_ADDR_6);
+  DEBUG("MAC address: %x:%x:%x:%x:%x:%x\n", mac1, mac2, mac3, mac4, mac5, mac6);
+  while(1){
+	packet_rx(dev);
+  }
   //virtio_net_set_mac_address(dev);
   //while(1){
    // struct virtio_packet rx = packet_rx(dev);
