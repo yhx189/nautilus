@@ -567,9 +567,11 @@ static int packet_tx(struct virtio_pci_dev *dev, uint64_t tx)
   struct virtio_packet_hdr *hdr = malloc(sizeof(struct virtio_packet_hdr));
   memset(hdr, 0, sizeof(struct virtio_packet_hdr));
   hdr->hdr_len = sizeof(struct virtio_packet_hdr); 
-  virtio_enque_request(dev, ring, (uint64_t)hdr, (uint32_t)(sizeof(struct virtio_packet_hdr)/4),flags);
+  hdr->num_buffers = 1;
 
- virtio_enque_request(dev, ring, addr, len, 0);
+  virtio_enque_request(dev, ring, (uint64_t)hdr, (uint32_t)(sizeof(struct virtio_packet_hdr)/4),flags);
+  virtio_enque_request(dev, ring, addr, len, 0);
+ 
   __asm__ __volatile__ ("" : : : "memory"); // software memory barrier
   __sync_synchronize(); // hardware memory barrier
   vq->avail->idx++; // it is ok that this wraps around
@@ -620,7 +622,7 @@ static int packet_rx(struct virtio_pci_dev *dev)
   
   /* to receive data, the driver adds an empty buffer to the avail ring,
          increments the index in the avai ring, 
-     and notify the device */
+         and notify the device */
   struct virtio_packet_hdr *hdr = malloc(sizeof(struct virtio_packet_hdr));
   memset(hdr, 0, sizeof(struct virtio_packet_hdr));
    
@@ -711,7 +713,13 @@ static int virtio_net_init(struct virtio_pci_dev *dev)
   memset(data, 0, sizeof(struct virtio_packet_data));
   memset(data->src, 0x01, 6);
   memset(data->dst, 0xff, 6);
-  memset(data->type, 0x02, 2); 
+  data->type[0] = 0x08;
+  data->type[1] = 0x06;
+  
+  nk_dump_mem(data, sizeof(struct virtio_packet_data));
+  DEBUG("tx mem:\n");
+  nk_dump_mem(tx, sizeof(struct virtio_packet_data));
+  packet_tx(dev, (uint64_t)tx);
   packet_tx(dev, (uint64_t)data);
   uint32_t mac1 = read_regb(dev, MAC_ADDR_1);
   uint32_t mac2 = read_regb(dev, MAC_ADDR_2);
@@ -721,7 +729,7 @@ static int virtio_net_init(struct virtio_pci_dev *dev)
   uint32_t mac6 = read_regb(dev, MAC_ADDR_6);
   DEBUG("MAC address: %x:%x:%x:%x:%x:%x\n", mac1, mac2, mac3, mac4, mac5, mac6);
   while(1){
-	//packet_rx(dev);
+	packet_rx(dev);
   }
   //virtio_net_set_mac_address(dev);
   //while(1){
