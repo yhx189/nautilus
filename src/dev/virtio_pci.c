@@ -619,19 +619,24 @@ static int packet_rx(struct virtio_pci_dev *dev)
   struct virtio_packet_hdr *hdr = malloc(sizeof(struct virtio_packet_hdr));
   memset(hdr, 0, sizeof(struct virtio_packet_hdr));
    
-  struct virtio_packet_data *data = malloc(sizeof(struct virtio_packet_data));
-  memset(data, 0, sizeof(struct virtio_packet_data));
   
   uint32_t used_idx = dev->vring[ring].vq.used->idx;
   DEBUG("RX: used->idx: %d\n", used_idx);
    
   uint32_t avail_idx = dev->vring[ring].vq.avail->idx;
   DEBUG("RX: avail->idx: %d\n", avail_idx);
-   
-  while(avail_idx <= used_idx){
-  	virtio_enque_request(dev, ring, (uint64_t)hdr, (uint32_t)(sizeof(struct virtio_packet_hdr)),flags);
-   	virtio_enque_request(dev, ring, (uint64_t)data,(uint32_t)(sizeof(struct virtio_packet_data)), VIRTQ_DESC_F_WRITE);
-    	virtio_enque_request(dev, ring, (uint64_t)data,(uint32_t)(sizeof(struct virtio_packet_data)), VIRTQ_DESC_F_WRITE);
+  uint32_t num_buf = 65566 / sizeof(struct virtio_packet_data) + 1;
+  uint32_t j = 0;
+  
+
+  virtio_enque_request(dev, ring, (uint64_t)hdr, (uint32_t)(sizeof(struct virtio_packet_hdr)),flags);
+  for(j = 0; j < num_buf; j++){
+  	struct virtio_packet_data *data = malloc(sizeof(struct virtio_packet_data));
+ 	memset(data, 0, sizeof(struct virtio_packet_data));
+        virtio_enque_request(dev, ring, (uint64_t)data,(uint32_t)(sizeof(struct virtio_packet_data)), VIRTQ_DESC_F_WRITE);
+  }
+
+  if(avail_idx <= used_idx){
     	__asm__ __volatile__ ("" : : : "memory"); // software memory barrier
  	__sync_synchronize(); // hardware memory barrier
  	dev->vring[ring].vq.avail->idx++; // it is ok that this wraps around
@@ -639,11 +644,10 @@ static int packet_rx(struct virtio_pci_dev *dev)
  	__sync_synchronize(); // hardware memory barrier
   	write_regw(dev, QUEUE_NOTIFY, RECEIVE_QUEUE);
 	DEBUG("NOTIFY DEVICE\n");
- 	udelay(10000);
         used_idx = dev->vring[ring].vq.used->idx;
  	avail_idx = dev->vring[ring].vq.avail->idx;
-   }
-   uint32_t j = 0;
+  }
+
   udelay(1000000);
   for(j=0; j<8; j++){
   uint32_t irr_status = apic_read(apic , APIC_GET_IRR(j));
