@@ -528,8 +528,8 @@ static int tx_handler(excp_entry_t* entry, excp_vec_t vec)
   /* read the ISR status reg, and reset it to 0 */
   DEBUG("TX HANDLER\n");
   /* clear the used ring*/
-  uint32_t isr_status = read_regb(p_dev, ISR_STATUS);
-  DEBUG("isr status: %x\n", isr_status);
+  //uint32_t isr_status = read_regb(p_dev, ISR_STATUS);
+  //DEBUG("isr status: %x\n", isr_status);
   uint32_t ring = TRANSMIT_QUEUE;
   
   
@@ -597,39 +597,25 @@ static int packet_rx(struct virtio_pci_dev *dev)
   /* to receive data, the driver adds an empty buffer to the avail ring,
          increments the index in the avai ring, 
          and notify the device */
-  struct virtio_packet_hdr *hdr = malloc(sizeof(struct virtio_packet_hdr));
-  memset(hdr, 0, sizeof(struct virtio_packet_hdr));
-   
+  
   
   uint32_t used_idx = dev->vring[ring].vq.used->idx;
   DEBUG("RX: used->idx: %d\n", used_idx);
    
   uint32_t avail_idx = dev->vring[ring].vq.avail->idx;
   DEBUG("RX: avail->idx: %d\n", avail_idx);
-  uint32_t num_buf = 65566 / sizeof(struct virtio_packet_data) + 1;
   uint32_t j = 0;
   
-
-  virtio_enque_request(dev, ring, (uint64_t)hdr, (uint32_t)(sizeof(struct virtio_packet_hdr)),flags);
-  for(j = 0; j < num_buf; j++){
-  	struct virtio_packet_data *data = malloc(sizeof(struct virtio_packet_data));
- 	memset(data, 0, sizeof(struct virtio_packet_data));
-        virtio_enque_request(dev, ring, (uint64_t)data,(uint32_t)(sizeof(struct virtio_packet_data)), VIRTQ_DESC_F_WRITE);
-  }
 
   if(avail_idx <= used_idx){
     	__asm__ __volatile__ ("" : : : "memory"); // software memory barrier
  	__sync_synchronize(); // hardware memory barrier
- 	static struct virtio_pci_dev * p_dev;dev->vring[ring].vq.avail->idx++; // it is ok that this wraps around
+ 	dev->vring[ring].vq.avail->idx += 1; // it is ok that this wraps around
  	__asm__ __volatile__ ("" : : : "memory"); // software memory barrier
  	__sync_synchronize(); // hardware memory barrier
   	write_regw(dev, QUEUE_NOTIFY, RECEIVE_QUEUE);
 	DEBUG("NOTIFY DEVICE\n");
-        used_idx = dev->vring[ring].vq.used->idx;
- 	avail_idx = dev->vring[ring].vq.avail->idx;
   }
-
-  udelay(1000000);
   for(j=0; j<8; j++){
   uint32_t irr_status = apic_read(apic , APIC_GET_IRR(j));
   DEBUG("irr status: %x\n", irr_status);
@@ -714,8 +700,21 @@ static int virtio_net_init(struct virtio_pci_dev *dev)
   uint32_t mac5 = read_regb(dev, MAC_ADDR_5);
   uint32_t mac6 = read_regb(dev, MAC_ADDR_6);
   DEBUG("MAC address: %x:%x:%x:%x:%x:%x\n", mac1, mac2, mac3, mac4, mac5, mac6);
-  while(1){
+  //while(1){
+        uint32_t ring = RECEIVE_QUEUE;
+        struct virtio_packet_hdr *hdr = malloc(sizeof(struct virtio_packet_hdr));
+        memset(hdr, 0, sizeof(struct virtio_packet_hdr));
+        virtio_enque_request(dev, ring, (uint64_t)hdr, (uint32_t)(sizeof(struct virtio_packet_hdr)),VIRTQ_DESC_F_NEXT);
+        uint32_t j;
+        uint32_t num_buf = 65566 / sizeof(struct virtio_packet_data) + 1;
+  	for(j = 0; j < num_buf; j++){
+  		struct virtio_packet_data *data = malloc(sizeof(struct virtio_packet_data));
+ 		memset(data, 0, sizeof(struct virtio_packet_data));
+        	virtio_enque_request(dev, ring, (uint64_t)data,(uint32_t)(sizeof(struct virtio_packet_data)), VIRTQ_DESC_F_WRITE);
+  	}
+   while(1){
 	packet_rx(dev);
+
   }
   //virtio_net_set_mac_address(dev);
   //while(1){
