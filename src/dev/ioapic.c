@@ -335,11 +335,11 @@ __ioapic_init (struct ioapic * ioapic, uint8_t ioapic_id)
      */
 #ifndef NAUT_CONFIG_XEON_PHI
    IOAPIC_DEBUG("unmasking serial\n");
-    nk_unmask_irq(serial_get_irq());
+    //nk_unmask_irq(serial_get_irq());
     // also unmask all PCI bus devices
     for (i=0;i<num_pci_irqs;i++) { 
       IOAPIC_DEBUG("unmasking pci 0x%x\n",pci_irqs[i]);
-      nk_unmask_irq(pci_irqs[i]);
+      //nk_unmask_irq(pci_irqs[i]);
     }
 
 #endif
