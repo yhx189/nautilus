@@ -21,7 +21,7 @@
 
 // list of virtio devices we are managing
 static struct list_head dev_list;
-
+static struct virtio_pci_dev * p_dev;
 
 static struct apic_dev * apic;
 // common register offsets
@@ -528,9 +528,9 @@ static int tx_handler(excp_entry_t* entry, excp_vec_t vec)
   /* read the ISR status reg, and reset it to 0 */
   DEBUG("TX HANDLER\n");
   /* clear the used ring*/
-  //uint32_t isr_status = read_regb(dev, ISR_STATUS);
-  //DEBUG("isr status: %x\n", isr_status);
-  //uint32_t ring = TRANSMIT_QUEUE;
+  uint32_t isr_status = read_regb(p_dev, ISR_STATUS);
+  DEBUG("isr status: %x\n", isr_status);
+  uint32_t ring = TRANSMIT_QUEUE;
   
   
   //virtio_dequeue_request(dev, ring, (uint64_t)hdr, (uint32_t)(sizeof(struct virtio_packet_hdr)/4),flags);
@@ -620,7 +620,7 @@ static int packet_rx(struct virtio_pci_dev *dev)
   if(avail_idx <= used_idx){
     	__asm__ __volatile__ ("" : : : "memory"); // software memory barrier
  	__sync_synchronize(); // hardware memory barrier
- 	dev->vring[ring].vq.avail->idx++; // it is ok that this wraps around
+ 	static struct virtio_pci_dev * p_dev;dev->vring[ring].vq.avail->idx++; // it is ok that this wraps around
  	__asm__ __volatile__ ("" : : : "memory"); // software memory barrier
  	__sync_synchronize(); // hardware memory barrier
   	write_regw(dev, QUEUE_NOTIFY, RECEIVE_QUEUE);
@@ -686,7 +686,7 @@ static int virtio_net_init(struct virtio_pci_dev *dev)
   val = read_regb(dev, DEVICE_STATUS);
   DEBUG("device status: 0x%0x\n", val);
 
-
+  p_dev = dev;
   register_irq_handler(228, tx_handler, NULL);
 
   struct virtio_packet *tx = malloc(sizeof(struct virtio_packet));
