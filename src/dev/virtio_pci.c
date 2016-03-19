@@ -615,6 +615,7 @@ static int packet_rx(struct virtio_pci_dev *dev)
  	__sync_synchronize(); // hardware memory barrier
   	write_regw(dev, QUEUE_NOTIFY, RECEIVE_QUEUE);
 	DEBUG("NOTIFY DEVICE\n");
+	DEBUG("used ring: %x\n", dev->vring[ring].vq.used->ring[used_idx]);
   }
   for(j=0; j<8; j++){
   uint32_t irr_status = apic_read(apic , APIC_GET_IRR(j));
@@ -683,15 +684,24 @@ static int virtio_net_init(struct virtio_pci_dev *dev)
   
   struct virtio_packet_data *data = malloc(sizeof(struct virtio_packet_data));
   memset(data, 0, sizeof(struct virtio_packet_data));
-  memset(data->src, 0x01, 6);
+  //memset(data->src, 0x01, 6);
+  data->src[0]=0x52;
+  data->src[1]=0x54;
+  data->src[2]=0x00;
+  data->src[3]=0x12;
+  data->src[4]=0x34;
+  data->src[5]=0x56;
+
+
+
   memset(data->dst, 0xff, 6);
-  data->type[0] = 0x08;
-  data->type[1] = 0x06;
+  //data->type[0] = 0x08;
+  //data->type[1] = 0x06;
   
   nk_dump_mem(data, sizeof(struct virtio_packet_data));
   //DEBUG("tx mem:\n");
   //nk_dump_mem(tx, sizeof(struct virtio_packet_data));
-  //packet_tx(dev, (uint64_t)tx);
+  packet_tx(dev, (uint64_t)tx);
   packet_tx(dev, (uint64_t)data);
   uint32_t mac1 = read_regb(dev, MAC_ADDR_1);
   uint32_t mac2 = read_regb(dev, MAC_ADDR_2);
@@ -700,7 +710,6 @@ static int virtio_net_init(struct virtio_pci_dev *dev)
   uint32_t mac5 = read_regb(dev, MAC_ADDR_5);
   uint32_t mac6 = read_regb(dev, MAC_ADDR_6);
   DEBUG("MAC address: %x:%x:%x:%x:%x:%x\n", mac1, mac2, mac3, mac4, mac5, mac6);
-  //while(1){
         uint32_t ring = RECEIVE_QUEUE;
         struct virtio_packet_hdr *hdr = malloc(sizeof(struct virtio_packet_hdr));
         memset(hdr, 0, sizeof(struct virtio_packet_hdr));
@@ -717,9 +726,6 @@ static int virtio_net_init(struct virtio_pci_dev *dev)
 
   }
   //virtio_net_set_mac_address(dev);
-  //while(1){
-   // struct virtio_packet rx = packet_rx(dev);
-  //}
   return 0;
 }
 
