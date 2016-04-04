@@ -714,17 +714,26 @@ static int virtio_net_init(struct virtio_pci_dev *dev)
   memset(hdr, 0, sizeof(struct virtio_packet_hdr));
   virtio_enque_request(dev, ring, (uint64_t)hdr, (uint32_t)(sizeof(struct virtio_packet_hdr)),VIRTQ_DESC_F_NEXT);
   uint32_t j;
-  uint32_t num_buf = 65566 / sizeof(struct virtio_packet_data) + 1;
+  uint32_t num_buf = 655 / sizeof(struct virtio_packet_data) + 1;
   for(j = 0; j < num_buf; j++){
   	struct virtio_packet_data *data = malloc(sizeof(struct virtio_packet_data));
  	memset(data, 0, sizeof(struct virtio_packet_data));
-        virtio_enque_request(dev, ring, (uint64_t)data,(uint32_t)(sizeof(struct virtio_packet_data)), VIRTQ_DESC_F_WRITE);
+       	__asm__ __volatile__ ("" : : : "memory"); // software memory barrier
+ 	__sync_synchronize(); // hardware memory barrier
+ 	dev->vring[ring].vq.avail->idx += 1; // it is ok that this wraps around
+ 	__asm__ __volatile__ ("" : : : "memory"); // software memory barrier
+ 	__sync_synchronize(); // hardware memory barrier
+  	
+    	virtio_enque_request(dev, ring, (uint64_t)data,(uint32_t)(sizeof(struct virtio_packet_data)), VIRTQ_DESC_F_WRITE);
   }
+  uint32_t used_idx = dev->vring[ring].vq.used->idx;
+  write_regw(dev, QUEUE_NOTIFY, RECEIVE_QUEUE);
+  DEBUG("used ring: %x\n", dev->vring[ring].vq.used->ring[used_idx]);
+ 
+//  while(1){
+//	packet_rx(dev);
 
-  while(1){
-	packet_rx(dev);
-
-  }
+ // }
   return 0;
 }
 
