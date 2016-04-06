@@ -34,7 +34,7 @@ struct virtio_packet_hdr{
 struct virtio_packet{
    struct virtio_packet_hdr hdr;
    struct virtio_packet_data data;
-};
+}__packed;
 
 
 struct virtio_pci_vring {
@@ -50,7 +50,7 @@ struct virtio_pci_vring {
   struct virtq vq;
   // for processing respones 
   unsigned int last_seen_used;
-};
+}__packed;
 
 struct virtio_pci_dev {
   enum virtio_pci_dev_type type;
@@ -75,7 +75,7 @@ struct virtio_pci_dev {
   // The number of vrings in use
   uint8_t num_vrings;
   struct virtio_pci_vring vring[MAX_VRINGS];
-};
+}__packed;
 int virtio_pci_init(struct naut_info * naut);
 int virtio_pci_deinit();
 

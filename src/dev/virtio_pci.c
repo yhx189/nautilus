@@ -616,18 +616,18 @@ static int packet_rx(struct virtio_pci_dev *dev)
   uint32_t j = 0;
   
  /* increment the avail ring buffer index and notify the device*/
-  
-  if(avail_idx <= used_idx){
+  uint32_t num_buf = 655 / sizeof(struct virtio_packet_data) + 1;
+  for(j=0; j < 1;j++ ){
     	__asm__ __volatile__ ("" : : : "memory"); // software memory barrier
  	__sync_synchronize(); // hardware memory barrier
  	dev->vring[ring].vq.avail->idx += 1; // it is ok that this wraps around
  	__asm__ __volatile__ ("" : : : "memory"); // software memory barrier
  	__sync_synchronize(); // hardware memory barrier
   	
-        write_regw(dev, QUEUE_NOTIFY, RECEIVE_QUEUE);
+ }
+       write_regw(dev, QUEUE_NOTIFY, RECEIVE_QUEUE);
 	DEBUG("used ring: %x\n", dev->vring[ring].vq.used->ring[used_idx]);
-  }
-
+  
 
    return 0;
 }
@@ -730,10 +730,10 @@ static int virtio_net_init(struct virtio_pci_dev *dev)
   write_regw(dev, QUEUE_NOTIFY, RECEIVE_QUEUE);
   DEBUG("used ring: %x\n", dev->vring[ring].vq.used->ring[used_idx]);
  
-//  while(1){
-//	packet_rx(dev);
+  while(1){
+	packet_rx(dev);
 
- // }
+  }
   return 0;
 }
 
