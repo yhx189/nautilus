@@ -76,6 +76,14 @@ struct virtio_pci_dev {
   uint8_t num_vrings;
   struct virtio_pci_vring vring[MAX_VRINGS];
 }__packed;
+
+struct net_dev_int{
+  uint32_t(*get_mtu)(void *state);
+  int (*set_mac)(char mac[mtu]);
+  int (*transmit)(void *state, uint8_t *packet, uint32_t len, int wait);
+  int (*receive)(void *state, uint8_t *packet, uint32_t len, int wait);
+}__packed;
+
 int virtio_pci_init(struct naut_info * naut);
 int virtio_pci_deinit();
 
