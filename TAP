@@ -1,3 +1,6 @@
+apt-get install bridge-utils
+tunctl
 ifconfig tap0 up
 brctl addbr br0
 brctl addif br0 tap0
+ifconfig br0 up

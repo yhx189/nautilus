@@ -12,7 +12,7 @@ struct virtio_packet_data{
   uint8_t dst[6];  // FF:FF:FF:FF:FF:FF
   uint8_t src[6];
   uint8_t type[2];
-  uint8_t data[100];
+  uint8_t data[2000];
 }__packed;
 
 struct virtio_packet_hdr{
@@ -79,7 +79,7 @@ struct virtio_pci_dev {
 
 struct net_dev_int{
   uint32_t(*get_mtu)(void *state);
-  int (*set_mac)(char mac[mtu]);
+  int (*set_mac)(char mac[6]);
   int (*transmit)(void *state, uint8_t *packet, uint32_t len, int wait);
   int (*receive)(void *state, uint8_t *packet, uint32_t len, int wait);
 }__packed;

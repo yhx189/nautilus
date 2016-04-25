@@ -2,6 +2,8 @@
 #make
 make isoimage
 sudo qemu-system-x86_64 -smp 4 -m 2048 -serial stdio -cdrom nautilus.iso -net nic,model=virtio -net tap,ifname=tap0,script=no -net dump,file=/tmp/tmp.pcap
+#sudo qemu-system-x86_64 -smp 4 -m 2048 -serial stdio -cdrom Core-current.iso -net nic,model=virtio -net tap,ifname=tap0,script=no -net dump,file=/tmp/tmp.pcap
+
 
 #sudo qemu-system-x86_64 -smp 4 -m 2048 -serial stdio -cdrom Core-current.iso -device virtio-net-pci,netdev=tap0 -netdev type=tap,id=tap0,script=no
 
