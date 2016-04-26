@@ -518,13 +518,56 @@ static int virtio_block_init(struct virtio_pci_dev *dev)
   return 0;
 }
 
+static int rx_handler(excp_entry_t * entry, excp_vec_t vec)
+{
+  DEBUG("RX HANDLER  INTERRUPT FIRED;  \n");
+  //IRQ_HANDLER_END();
+  //write_regb(p_dev, ISR_STATUS, 0); 
+   
+  /* disable further interrupts */
+   
+  uint32_t ring = RECEIVE_QUEUE;
+  struct virtio_pci_vring *vring = &p_dev->vring[ring];
+  volatile struct virtq *vq = &vring->vq;
+
+
+  // disable interrupts
+  vq->avail->flags |= VIRTQ_AVAIL_F_NO_INTERRUPT;
+
+  // process packets
+  struct virtq_used_elem *e = &(vq->used->ring[vring->last_seen_used % vq->num]);
+
+  if (e->len < 1) { 
+      DEBUG("Surprising len %u response\n", e->len);
+    }
+
+  DEBUG("received buffer:\n");
+  DEBUG("id is %d, length is %d\n", e->id, e->len);
+  uint32_t i = 0;
+  uint64_t *p = (uint64_t *)vq->desc[e->id].addr;
+  uint64_t s[vq->desc[e->id].len];
+  for(i = 0; i < vq->desc[e->id].len; i++){
+  	printk("%x", p);
+	p++;
+  }
+  //free_descriptor(vq,e->id);
+  printk("\n");
+  /* re-enable interrupts */ 
+  vq->avail->flags = 0;
+   
+
+  return 0;
+}
+
 static int tx_handler(excp_entry_t* entry, excp_vec_t vec)
 {
   /* read the ISR status reg, and reset it to 0 */
-  DEBUG("RX HANDLER  INTERRUPT FIRED;  \n");
+  DEBUG("TX HANDLER  INTERRUPT FIRED;  \n");
   IRQ_HANDLER_END();
-  return 0;
-  write_regb(p_dev, ISR_STATUS, 0); 
+  
+
+  //return 0;
+  //write_regb(p_dev, ISR_STATUS, 0); 
    
   /* disable further interrupts */
    
@@ -615,6 +658,7 @@ static int packet_rx(struct virtio_pci_dev *dev)
   uint32_t avail_idx = dev->vring[ring].vq.avail->idx;
   //DEBUG("RX: avail->idx: %d\n", avail_idx);
   uint32_t j = 0;
+#ifdef DEBUG_MODE
  /* increment the avail ring buffer index and notify the device*/
   uint32_t num_buf = 655 / sizeof(struct virtio_packet_data) + 1;
   for(j=0; j < 1;j++ ){
@@ -626,8 +670,6 @@ static int packet_rx(struct virtio_pci_dev *dev)
   	
  }
        write_regw(dev, QUEUE_NOTIFY, RECEIVE_QUEUE);
-	DEBUG("used ring: %x\n", dev->vring[ring].vq.used->ring[used_idx]);
-#ifdef DEBUG_MODE
   for(j=0; j<8; j++){
   uint32_t irr_status = apic_read(apic , APIC_GET_IRR(j));
   DEBUG("irr status: %x\n", irr_status);
@@ -688,7 +730,7 @@ static int virtio_net_init(struct virtio_pci_dev *dev)
   DEBUG("device status: 0x%0x\n", val);
 
   p_dev = dev;
-  register_int_handler(0xe4, tx_handler, NULL);
+  register_int_handler(0xe4, rx_handler, NULL);
   
   struct virtio_packet *tx = malloc(sizeof(struct virtio_packet));
   memset(tx, 0, sizeof(struct virtio_packet));
@@ -707,7 +749,7 @@ static int virtio_net_init(struct virtio_pci_dev *dev)
   data->src[5]=0x56;
   memset(data->dst, 0xff, 6);
   
-  nk_dump_mem(data, sizeof(struct virtio_packet_data));
+  //nk_dump_mem(data, sizeof(struct virtio_packet_data));
   //packet_tx(dev, (uint64_t)tx);
   //packet_tx(dev, (uint64_t)data);
   
@@ -741,12 +783,13 @@ static int virtio_net_init(struct virtio_pci_dev *dev)
   }
   uint32_t used_idx = dev->vring[ring].vq.used->idx;
   write_regw(dev, QUEUE_NOTIFY, RECEIVE_QUEUE);
+  DEBUG("used idex: %d\n", used_idx);
   DEBUG("used ring: %x\n", dev->vring[ring].vq.used->ring[used_idx]);
  
-  while(1){
-	packet_rx(dev);
+  //while(1){
+//	packet_rx(dev);
 
-  }
+  //}
   return 0;
 }
 
