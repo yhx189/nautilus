@@ -547,7 +547,7 @@ static int rx_handler(excp_entry_t * entry, excp_vec_t vec)
   uint64_t *p = (uint64_t *)vq->desc[e->id].addr;
   uint64_t s[vq->desc[e->id].len];
   for(i = 0; i < vq->desc[e->id].len; i++){
-  	printk("%x", p);
+  	printk("%x", *p);
 	p++;
   }
   //free_descriptor(vq,e->id);
@@ -764,8 +764,15 @@ static int virtio_net_init(struct virtio_pci_dev *dev)
   uint32_t ring = RECEIVE_QUEUE;
   struct virtio_packet_hdr *hdr = malloc(sizeof(struct virtio_packet_hdr));
   memset(hdr, 0, sizeof(struct virtio_packet_hdr));
-  //virtio_enque_request(dev, ring, (uint64_t)hdr, (uint32_t)(sizeof(struct virtio_packet_hdr)),VIRTQ_DESC_F_NEXT);
-  
+  /*  
+  __asm__ __volatile__ ("" : : : "memory"); // software memory barrier
+  __sync_synchronize(); // hardware memory barrier
+  dev->vring[ring].vq.avail->idx += 1; // it is ok that this wraps around
+ __asm__ __volatile__ ("" : : : "memory"); // software memory barrier
+  __sync_synchronize(); // hardware memory barrier	
+
+  virtio_enque_request(dev, ring, (uint64_t)hdr, (uint32_t)(sizeof(struct virtio_packet_hdr)),VIRTQ_DESC_F_NEXT);
+  */
   uint32_t j;
   uint32_t num_buf = 65535 / sizeof(struct virtio_packet) + 1;
   DEBUG("num_buf: %d\n", num_buf);
@@ -786,10 +793,10 @@ static int virtio_net_init(struct virtio_pci_dev *dev)
   DEBUG("used idex: %d\n", used_idx);
   DEBUG("used ring: %x\n", dev->vring[ring].vq.used->ring[used_idx]);
  
-  //while(1){
-//	packet_rx(dev);
+  while(1){
+	packet_rx(dev);
 
-  //}
+  }
   return 0;
 }
 
