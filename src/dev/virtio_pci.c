@@ -158,6 +158,8 @@ static int discover_devices(struct pci_info *pci)
     return -1;
   }
 
+
+  struct virtio_pci_dev *vdev;
   list_for_each(curbus,&(pci->bus_list)) { 
     struct pci_bus *bus = list_entry(curbus,struct pci_bus,bus_node);
 
@@ -171,7 +173,6 @@ static int discover_devices(struct pci_info *pci)
 
       if (cfg->vendor_id==0x1af4 && cfg->device_id>=0x1000 && cfg->device_id<=0x103f) {
 	DEBUG("Virtio Device Found (subsys_id=0x%x)\n",cfg->dev_cfg.subsys_id);
-	struct virtio_pci_dev *vdev;
 
 	vdev = malloc(sizeof(struct virtio_pci_dev));
 	if (!vdev) {
@@ -286,12 +287,13 @@ static int discover_devices(struct pci_info *pci)
 	     vdev->mem_start, vdev->mem_end);
 	     
         list_add_tail(&vdev->virtio_node, &dev_list);
-	list_add_tail(&vdev->virtio_node,&(bus->dev_list));
+	list_add(&vdev->virtio_node,&(bus->dev_list));
 	num++;
 
       }
     }
   }
+
   return 0;
 }
 
@@ -652,8 +654,11 @@ int packet_tx(struct virtio_net_state *state, uint64_t packet, uint32_t packet_l
   return 0;
 }
 
-static int packet_rx(struct virtio_pci_dev *dev)
+int packet_rx(struct virtio_net_state *state, uint64_t packet, uint32_t packet_len, int wait)
+//static int packet_rx(struct virtio_pci_dev *dev)
 {
+  struct virtio_pci_dev * dev;
+  dev = state->virtio_dev;
   uint32_t ring = RECEIVE_QUEUE;
   uint32_t len = sizeof(struct virtio_packet);
   uint16_t flags = VIRTQ_DESC_F_NEXT; 
@@ -847,15 +852,19 @@ static int bringup_devices()
   struct list_head *curdev;
 
   DEBUG("Bringing up virtio devices\n");
-
+  int num = 0;
   list_for_each(curdev,&(dev_list)) { 
     struct virtio_pci_dev *dev = list_entry(curdev,struct virtio_pci_dev,virtio_node);
-    if (bringup_device(dev)) { 
+    if(!strcmp(dev->name, "virtio-0-net")){
+    int ret = bringup_device(dev);
+    if (ret) { 
       ERROR("Bringup of virtio devices failed\n");
       return -1;
     }
+    return 0;
+    }
+    
   }
-
   return 0;
 }
 

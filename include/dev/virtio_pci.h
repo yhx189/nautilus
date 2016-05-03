@@ -57,6 +57,9 @@ struct net_dev_int{
   int (*set_mac)(char mac[6]);
   int (*transmit)(void *state, uint32_t *packet, uint32_t len, int wait);
   int (*receive)(void *state, uint32_t *packet, uint32_t len, int wait);
+  int (*receive_async)(void *state, uint32_t *packet, uint32_t len, int wait);
+  int (*transmit_async)(void *state, uint32_t *packet, uint32_t len, int wait);
+
 }__packed;
 
 struct virtio_pci_dev {
@@ -90,6 +93,7 @@ struct virtio_net_state{
   uint32_t tx_pkts, rx_pkts;
 };
 
+int packet_rx(struct virtio_net_state *state, uint64_t packet, uint32_t len, int wait);
 
 int packet_tx(struct virtio_net_state *state, uint64_t packet, uint32_t len, int wait);
 int virtio_pci_init(struct naut_info * naut);

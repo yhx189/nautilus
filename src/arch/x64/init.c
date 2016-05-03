@@ -116,7 +116,8 @@ void virtio_pci_test(struct naut_info * naut ){
    interface->transmit((void*)state, (uint64_t)tx, packet_len, wait); 
 
    // receive packets
-   
+   interface->receive = &packet_rx;
+    
    //net_dev->receive(state, packet, packet_len, wait);
 }
 
