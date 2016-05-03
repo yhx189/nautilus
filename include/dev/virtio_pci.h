@@ -52,6 +52,13 @@ struct virtio_pci_vring {
   unsigned int last_seen_used;
 }__packed;
 
+struct net_dev_int{
+  uint32_t(*get_mtu)(void *state);
+  int (*set_mac)(char mac[6]);
+  int (*transmit)(void *state, uint32_t *packet, uint32_t len, int wait);
+  int (*receive)(void *state, uint32_t *packet, uint32_t len, int wait);
+}__packed;
+
 struct virtio_pci_dev {
   enum virtio_pci_dev_type type;
   char name[32];
@@ -75,15 +82,16 @@ struct virtio_pci_dev {
   // The number of vrings in use
   uint8_t num_vrings;
   struct virtio_pci_vring vring[MAX_VRINGS];
+  struct net_dev_int interface;
 }__packed;
 
-struct net_dev_int{
-  uint32_t(*get_mtu)(void *state);
-  int (*set_mac)(char mac[6]);
-  int (*transmit)(void *state, uint8_t *packet, uint32_t len, int wait);
-  int (*receive)(void *state, uint8_t *packet, uint32_t len, int wait);
-}__packed;
+struct virtio_net_state{
+  struct virio_pci_dev *virtio_dev;
+  uint32_t tx_pkts, rx_pkts;
+};
 
+
+int packet_tx(struct virtio_net_state *state, uint64_t packet, uint32_t len, int wait);
 int virtio_pci_init(struct naut_info * naut);
 int virtio_pci_deinit();
 

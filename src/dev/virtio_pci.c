@@ -203,7 +203,7 @@ static int discover_devices(struct pci_info *pci)
 		 vdev->type==VIRTIO_PCI_BLOCK ? "block" :
 		 vdev->type==VIRTIO_PCI_OTHER ? "other" : "UNKNOWN");
 
-
+        printk("%s\n", vdev->name);
 	// PCI Interrupt (A..D)
 	vdev->pci_intr = cfg->dev_cfg.intr_pin;
 	// Figure out mapping here or look at capabilities for MSI-X
@@ -285,8 +285,8 @@ static int discover_devices(struct pci_info *pci)
 	     vdev->ioport_start, vdev->ioport_end,
 	     vdev->mem_start, vdev->mem_end);
 	     
-
-	list_add_tail(&vdev->virtio_node,&dev_list);
+        list_add_tail(&vdev->virtio_node, &dev_list);
+	list_add_tail(&vdev->virtio_node,&(bus->dev_list));
 	num++;
 
       }
@@ -593,8 +593,14 @@ static int tx_handler(excp_entry_t* entry, excp_vec_t vec)
   return 0;
 }
 
-static int packet_tx(struct virtio_pci_dev *dev, uint64_t tx)
+
+int packet_tx(struct virtio_net_state *state, uint64_t packet, uint32_t packet_len, int wait)
+//static int packet_tx(struct virtio_pci_dev *dev, uint64_t tx)
 {
+  struct virtio_pci_dev * dev;
+  dev  = state->virtio_dev;
+  uint64_t tx = (uint64_t) packet;
+
   uint32_t ring = TRANSMIT_QUEUE;
   uint64_t addr = (uint64_t)tx;
   uint32_t len = sizeof(struct virtio_packet_data);
@@ -621,7 +627,7 @@ static int packet_tx(struct virtio_pci_dev *dev, uint64_t tx)
   
   /* notify the device */
   write_regw(dev, QUEUE_NOTIFY, TRANSMIT_QUEUE);
-
+  DEBUG("notification sent %x\n", addr);
   /* debug output */
 #ifdef DEBUG_MODE
   uint32_t j = 0;
@@ -709,9 +715,8 @@ static int virtio_net_set_mac_address(struct virtio_pci_dev *dev)
 static int virtio_net_init(struct virtio_pci_dev *dev)
 {
   uint32_t val;
-
+  printk("%x\n", dev);
   DEBUG("Net init of %s\n",dev->name);
-
   val = read_regl(dev,DEVICE_FEATURES);
   DEBUG("device features: 0x%0x\n",val);
   
@@ -750,7 +755,12 @@ static int virtio_net_init(struct virtio_pci_dev *dev)
   memset(data->dst, 0xff, 6);
   
   //nk_dump_mem(data, sizeof(struct virtio_packet_data));
-  //packet_tx(dev, (uint64_t)tx);
+  struct virtio_net_state* state = malloc(sizeof(struct virtio_net_state));
+  state->virtio_dev = (struct virtio_pci_dev*)dev;
+  packet_tx(state, (uint64_t)tx, (uint32_t)sizeof(struct virtio_packet) ,0);
+  packet_tx(state, (uint64_t)data, (uint32_t)sizeof(struct virtio_packet) ,0);
+  
+
   //packet_tx(dev, (uint64_t)data);
   
   uint32_t mac1 = read_regb(dev, MAC_ADDR_1);
@@ -793,12 +803,13 @@ static int virtio_net_init(struct virtio_pci_dev *dev)
   DEBUG("used idex: %d\n", used_idx);
   DEBUG("used ring: %x\n", dev->vring[ring].vq.used->ring[used_idx]);
  
-  while(1){
-	packet_rx(dev);
+  //while(1){
+//	packet_rx(dev);
 
-  }
+ // }
   return 0;
 }
+
 
 static int bringup_device(struct virtio_pci_dev *dev)
 {
@@ -820,6 +831,7 @@ static int bringup_device(struct virtio_pci_dev *dev)
       ERROR("Failed to bring up device %s\n", dev->name);
       return -1;
     }
+    
     return virtio_net_init(dev);
     break;
   case VIRTIO_PCI_OTHER:

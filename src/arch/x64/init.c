@@ -62,6 +62,64 @@
 
 extern spinlock_t printk_lock;
 
+void virtio_pci_test(struct naut_info * naut ){
+   printk("Testing virtio network device\n");
+   struct virtio_pci_dev* pci_dev;
+   uint32_t found_virtio_nic = 0;
+   //find the net device by name
+   struct pci_info *pci = naut->sys.pci;
+   struct list_head *curbus, *curdev;
+   struct list_head dev_list;
+   INIT_LIST_HEAD(&dev_list);
+   list_for_each(curbus, &(pci->bus_list)){
+     struct pci_bus *bus = list_entry(curbus, struct pci_bus, bus_node);
+     list_for_each(curdev, &(bus->dev_list)){
+          struct virtio_pci_dev * pdev = list_entry(curdev, struct virtio_pci_dev, virtio_node);
+          printk("%s\n", pdev->name);
+          if(!strcmp(pdev->name, "virtio-0-net")){
+             pci_dev = pdev;
+             found_virtio_nic = 1;
+             printk("virtio nic device found, type %d\n",pci_dev->type);
+	  }
+     }
+
+   }   
+   if(!found_virtio_nic){
+	printk("Did not find any virtio device, exit\n");
+	return;
+   }
+   struct net_dev_int *interface = &(pci_dev->interface);
+ 
+   struct virtio_packet *tx = malloc(sizeof(struct virtio_packet));
+   memset(tx, 0, sizeof(struct virtio_packet));
+   memset(&(tx->data.src), 0x01, 6);
+   memset(&(tx->data.dst), 0xff, 6);
+   memset(&(tx->data.type), 0x01, 2);
+  
+   struct virtio_packet_data *data = malloc(sizeof(struct virtio_packet_data));
+   memset(data, 0, sizeof(struct virtio_packet_data));
+   //memset(data->src, 0x01, 6);
+   data->src[0]=0x52;
+   data->src[1]=0x54;
+   data->src[2]=0x00;
+   data->src[3]=0x12;
+   data->src[4]=0x34;
+   data->src[5]=0x56;
+  
+   // send packet
+   uint32_t wait = 0;
+   uint32_t packet_len = sizeof(*tx);
+   struct virtio_net_state *state = malloc(sizeof(struct virtio_net_state));
+   state->virtio_dev = pci_dev;
+   printk("%x\n", pci_dev );
+   interface->transmit = &packet_tx;
+   interface->transmit((void*)state, (uint64_t)tx, packet_len, wait); 
+
+   // receive packets
+   
+   //net_dev->receive(state, packet, packet_len, wait);
+}
+
 #ifdef NAUT_CONFIG_NDPC_RT
 void ndpc_rt_test()
 {
@@ -266,6 +324,7 @@ init (unsigned long mbd,
     runtime_init();
 
     virtio_pci_init(naut);
+    virtio_pci_test(naut);
     printk("Nautilus boot thread yielding (indefinitely)\n");
     /* we don't come back from this */
     idle(NULL, NULL);
