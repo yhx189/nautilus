@@ -34,6 +34,7 @@ struct virtio_packet_hdr{
 struct virtio_packet{
    struct virtio_packet_hdr hdr;
    struct virtio_packet_data data;
+   struct list_head packet_node;
 }__packed;
 
 
@@ -93,6 +94,7 @@ struct virtio_net_state{
   uint32_t tx_pkts, rx_pkts;
 };
 
+inline void write_regw(struct virtio_pci_dev *dev, uint32_t offset, uint16_t data);
 int packet_rx(struct virtio_net_state *state, uint64_t packet, uint32_t len, int wait);
 
 int packet_tx(struct virtio_net_state *state, uint64_t packet, uint32_t len, int wait);

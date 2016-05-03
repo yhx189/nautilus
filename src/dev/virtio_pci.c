@@ -22,6 +22,7 @@
 // list of virtio devices we are managing
 static struct list_head dev_list;
 static struct virtio_pci_dev * p_dev;
+static struct list_head tx_queue;
 
 static struct apic_dev * apic;
 // common register offsets
@@ -96,7 +97,7 @@ uint32_t read_regw(struct virtio_pci_dev *dev, uint32_t offset)
 #endif
 }
 
-inline static void write_regw(struct virtio_pci_dev *dev, uint32_t offset, uint16_t data)
+inline void write_regw(struct virtio_pci_dev *dev, uint32_t offset, uint16_t data)
 {
 #if ACCESS_VIA_MEM
   // we want to be assured that we are doing a single write
@@ -595,6 +596,27 @@ static int tx_handler(excp_entry_t* entry, excp_vec_t vec)
   return 0;
 }
 
+int packet_tx_async(struct virtio_net_state *state, uint64_t packet, uint32_t packet_len, int wait)
+{
+  
+  INIT_LIST_HEAD(&tx_queue);
+  struct list_head tx;
+   
+
+  struct virtio_packet* ptr = packet;
+  list_add_tail(& (ptr->packet_node) , &tx_queue);
+  struct list_head *curpacket;
+  int num = 0; 
+  list_for_each(curpacket, &tx_queue) { 
+      uint64_t to_send = list_entry(curpacket, struct virtio_packet, packet_node);
+      if(num == 0)
+         packet_tx(state, to_send, sizeof(struct virtio_packet), 0);
+      num++;
+  }
+     
+  return 0;
+}
+
 
 int packet_tx(struct virtio_net_state *state, uint64_t packet, uint32_t packet_len, int wait)
 //static int packet_tx(struct virtio_pci_dev *dev, uint64_t tx)
@@ -653,6 +675,13 @@ int packet_tx(struct virtio_net_state *state, uint64_t packet, uint32_t packet_l
 #endif
   return 0;
 }
+
+int packet_rx_async(struct virtio_net_state *state, uint64_t packet, uint32_t packet_len, int wait)
+{
+   
+  return 0;
+}
+
 
 int packet_rx(struct virtio_net_state *state, uint64_t packet, uint32_t packet_len, int wait)
 //static int packet_rx(struct virtio_pci_dev *dev)
@@ -762,8 +791,8 @@ static int virtio_net_init(struct virtio_pci_dev *dev)
   //nk_dump_mem(data, sizeof(struct virtio_packet_data));
   struct virtio_net_state* state = malloc(sizeof(struct virtio_net_state));
   state->virtio_dev = (struct virtio_pci_dev*)dev;
-  packet_tx(state, (uint64_t)tx, (uint32_t)sizeof(struct virtio_packet) ,0);
-  packet_tx(state, (uint64_t)data, (uint32_t)sizeof(struct virtio_packet) ,0);
+  //packet_tx(state, (uint64_t)tx, (uint32_t)sizeof(struct virtio_packet) ,0);
+  //packet_tx(state, (uint64_t)data, (uint32_t)sizeof(struct virtio_packet) ,0);
   
 
   //packet_tx(dev, (uint64_t)data);
@@ -804,7 +833,7 @@ static int virtio_net_init(struct virtio_pci_dev *dev)
     	virtio_enque_request(dev, ring, (uint64_t)data,(uint32_t)(sizeof(struct virtio_packet)), VIRTQ_DESC_F_WRITE);
   }
   uint32_t used_idx = dev->vring[ring].vq.used->idx;
-  write_regw(dev, QUEUE_NOTIFY, RECEIVE_QUEUE);
+  //write_regw(dev, QUEUE_NOTIFY, RECEIVE_QUEUE);
   DEBUG("used idex: %d\n", used_idx);
   DEBUG("used ring: %x\n", dev->vring[ring].vq.used->ring[used_idx]);
  
@@ -849,12 +878,12 @@ static int bringup_device(struct virtio_pci_dev *dev)
 
 static int bringup_devices()
 {
-  struct list_head *curdev;
+  struct list_head *curdev, tx_node;
 
   DEBUG("Bringing up virtio devices\n");
   int num = 0;
   list_for_each(curdev,&(dev_list)) { 
-    struct virtio_pci_dev *dev = list_entry(curdev,struct virtio_pci_dev,virtio_node);
+    struct virtio_pci_dev *dev = list_entry(curdev,struct virtio_pci_dev,virtio_node );
     if(!strcmp(dev->name, "virtio-0-net")){
     int ret = bringup_device(dev);
     if (ret) { 
