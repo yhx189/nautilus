@@ -562,6 +562,8 @@ static int rx_handler(excp_entry_t * entry, excp_vec_t vec)
   return 0;
 }
 
+
+// merge tx and rx in a single handler
 static int tx_handler(excp_entry_t* entry, excp_vec_t vec)
 {
   /* read the ISR status reg, and reset it to 0 */
