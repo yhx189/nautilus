@@ -75,7 +75,7 @@ void virtio_pci_test(struct naut_info * naut ){
      struct pci_bus *bus = list_entry(curbus, struct pci_bus, bus_node);
      list_for_each(curdev, &(bus->dev_list)){
           struct virtio_pci_dev * pdev = list_entry(curdev, struct virtio_pci_dev, virtio_node);
-          printk("%s\n", pdev->name);
+          //printk("%s\n", pdev->name);
           if(!strcmp(pdev->name, "virtio-0-net")){
              pci_dev = pdev;
              found_virtio_nic = 1;
@@ -96,28 +96,35 @@ void virtio_pci_test(struct naut_info * naut ){
    memset(&(tx->data.dst), 0xff, 6);
    memset(&(tx->data.type), 0x01, 2);
   
-   struct virtio_packet_data *data = malloc(sizeof(struct virtio_packet_data));
-   memset(data, 0, sizeof(struct virtio_packet_data));
+   struct virtio_packet *data = malloc(sizeof(struct virtio_packet));
+   memset(data, 0, sizeof(struct virtio_packet));
    //memset(data->src, 0x01, 6);
-   data->src[0]=0x52;
-   data->src[1]=0x54;
-   data->src[2]=0x00;
-   data->src[3]=0x12;
-   data->src[4]=0x34;
-   data->src[5]=0x56;
+   data->data.src[0]=0x52;
+   data->data.src[1]=0x54;
+   data->data.src[2]=0x00;
+   data->data.src[3]=0x12;
+   data->data.src[4]=0x34;
+   data->data.src[5]=0x56;
   
    // send packet
    uint32_t wait = 0;
    uint32_t packet_len = sizeof(*tx);
-   struct virtio_net_state *state = malloc(sizeof(struct virtio_net_state));
-   state->virtio_dev = pci_dev;
-   printk("%x\n", pci_dev );
+   struct virtio_net_state* state = malloc(sizeof(struct virtio_net_state));
+   memset(state, 0, sizeof(state));
+   (*state).dev = (struct virtio_pci_dev*)pci_dev;
+   //printk("%x\n", pci_dev );
    interface->transmit = &packet_tx;
+   interface->transmit_async = &packet_tx_async;
    interface->transmit((void*)state, (uint64_t)tx, packet_len, wait); 
-
+   interface->transmit((void*)state, (uint64_t)data, sizeof(*data), wait);
+   nk_sleep(1000);
+   uint32_t i = 0;
+   for(i = 0; i < 5; i++)
+	//interface->transmit_async((void*)state, (uint64_t)data, sizeof(*data), wait);
    // receive packets
    interface->receive = &packet_rx;
-    
+   
+ 
    //net_dev->receive(state, packet, packet_len, wait);
 }
 

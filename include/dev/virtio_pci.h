@@ -56,10 +56,10 @@ struct virtio_pci_vring {
 struct net_dev_int{
   uint32_t(*get_mtu)(void *state);
   int (*set_mac)(char mac[6]);
-  int (*transmit)(void *state, uint32_t *packet, uint32_t len, int wait);
-  int (*receive)(void *state, uint32_t *packet, uint32_t len, int wait);
-  int (*receive_async)(void *state, uint32_t *packet, uint32_t len, int wait);
-  int (*transmit_async)(void *state, uint32_t *packet, uint32_t len, int wait);
+  int (*transmit)(void *state, uint64_t packet, uint32_t len, int wait);
+  int (*receive)(void *state, uint64_t packet, uint32_t len, int wait);
+  int (*receive_async)(void *state, uint64_t packet, uint32_t len, int wait);
+  int (*transmit_async)(void *state, uint64_t packet, uint32_t len, int wait);
 
 }__packed;
 
@@ -90,14 +90,21 @@ struct virtio_pci_dev {
 }__packed;
 
 struct virtio_net_state{
-  struct virio_pci_dev *virtio_dev;
-  uint32_t tx_pkts, rx_pkts;
-};
+  struct virio_pci_dev* dev;
+  uint32_t tx_pkts;
+  uint32_t rx_pkts;
+}__packed;
 
 inline void write_regw(struct virtio_pci_dev *dev, uint32_t offset, uint16_t data);
-int packet_rx(struct virtio_net_state *state, uint64_t packet, uint32_t len, int wait);
+int packet_rx(void *v_state, uint64_t packet, uint32_t len, int wait);
+int packet_tx(void *v_state, uint64_t packet, uint32_t len, int wait);
+int packet_tx_async(void *v_state, uint64_t packet, uint32_t len, int wait);
+int packet_rx_async(void *v_state, uint64_t packet, uint32_t len, int wait);
 
-int packet_tx(struct virtio_net_state *state, uint64_t packet, uint32_t len, int wait);
+
+
+
+
 int virtio_pci_init(struct naut_info * naut);
 int virtio_pci_deinit();
 
