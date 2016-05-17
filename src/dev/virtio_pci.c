@@ -23,6 +23,7 @@
 static struct list_head dev_list;
 static struct virtio_pci_dev * p_dev;
 static struct list_head tx_queue;
+static struct list_head rx_queue;
 
 static struct apic_dev * apic;
 // common register offsets
@@ -525,8 +526,6 @@ static int irq_handler(excp_entry_t * entry, excp_vec_t vec)
 {
   DEBUG("IRQ HANDLER  INTERRUPT FIRED;  \n");
   
-   /* disable further interrupts */
-  
   uint32_t ring = RECEIVE_QUEUE;
   struct virtio_pci_vring *vring = &p_dev->vring[ring];
   volatile struct virtq *vq = &vring->vq;
@@ -608,10 +607,13 @@ static int irq_handler(excp_entry_t * entry, excp_vec_t vec)
   	DEBUG("used index: %x\n", vq->used->idx);
   	DEBUG("avail index: %x\n", vq->avail->idx);
   }
+  goto out;
   //vq->avail->flags = 0;	
   //nk_thread_exit(NULL);
+
+out:
   DEBUG("returning from interrupt\n");
-  IRQ_HANDLER_END();
+  //IRQ_HANDLER_END();
   return 0;
 }
 
@@ -746,9 +748,27 @@ int packet_tx(void *v_state, uint64_t packet, uint32_t packet_len, int wait)
   return 0;
 }
 
-int packet_rx_async(void *state, uint64_t packet, uint32_t packet_len, int wait)
+int packet_rx_async(void *v_state, uint64_t packet, uint32_t packet_len, int wait)
 {
+  struct virtio_net_state* state = (struct virtio_net_state*) v_state;
+  INIT_LIST_HEAD(&rx_queue);
+  struct list_head rx;
    
+
+  struct virtio_packet* ptr = (struct virtio_packet*)packet;
+  list_add_tail(& (ptr->packet_node) , &rx_queue);
+  struct list_head *curpacket;
+  int num = 0;  
+  DEBUG("receiving packet: ");
+  list_for_each(curpacket, &rx_queue) { 
+      struct virtio_packet* received = list_entry(curpacket, struct virtio_packet, packet_node);
+      DEBUG("at %x\n", received);
+      if(num == 0)
+         packet_rx(state, (uint64_t)received, sizeof(struct virtio_packet), 0);
+      
+      num++;
+  }
+  
   return 0;
 }
 
@@ -854,7 +874,7 @@ static int virtio_net_init(struct virtio_pci_dev *dev)
 
   p_dev = dev;
   register_int_handler(0xe4, irq_handler, NULL);
-  //nk_unmask_irq(0xe4);
+  nk_unmask_irq(0xb);
   /*
   struct virtio_packet *tx = malloc(sizeof(struct virtio_packet));
   memset(tx, 0, sizeof(struct virtio_packet));

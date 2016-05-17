@@ -339,7 +339,8 @@ __ioapic_init (struct ioapic * ioapic, uint8_t ioapic_id)
     // also unmask all PCI bus devices
     for (i=0;i<num_pci_irqs;i++) { 
       IOAPIC_DEBUG("unmasking pci 0x%x\n",pci_irqs[i]);
-      nk_unmask_irq(pci_irqs[i]);
+      //printk("unmasking pci 0x%x\n", pci_irqs[i]);
+      //nk_unmask_irq(pci_irqs[i]);
     }
 
 #endif
