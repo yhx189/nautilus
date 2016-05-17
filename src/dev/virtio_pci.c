@@ -523,12 +523,7 @@ static int virtio_block_init(struct virtio_pci_dev *dev)
 
 static int irq_handler(excp_entry_t * entry, excp_vec_t vec)
 {
-  //DEBUG("IRQ HANDLER  INTERRUPT FIRED;  \n");
-  //IRQ_HANDLER_END();
-  //write_regb(p_dev, ISR_STATUS, 0); 
-  
-   /* find out the reason for the interrupt */
-  
+  DEBUG("IRQ HANDLER  INTERRUPT FIRED;  \n");
   
    /* disable further interrupts */
   
@@ -536,59 +531,40 @@ static int irq_handler(excp_entry_t * entry, excp_vec_t vec)
   struct virtio_pci_vring *vring = &p_dev->vring[ring];
   volatile struct virtq *vq = &vring->vq;
   
-  
-
   // disable interrupts
-  //vq->avail->flags |= VIRTQ_AVAIL_F_NO_INTERRUPT;
-
-  // process packets
-  struct virtq_used_elem *e = &(vq->used->ring[vring->last_seen_used % vq->num]);
-  uint32_t len = vq->desc[e->id].len;
-  
-  if (len >= 1) { 
+  vq->avail->flags |= VIRTQ_AVAIL_F_NO_INTERRUPT;
+  DEBUG("last seen used %d, used idx %d \n", vring->last_seen_used, vq->used->idx);
+  struct virtq_used_elem *e;
+  uint32_t len;
+  while(vring->last_seen_used < vq->used->idx){
+      //if(vring->last_seen_used != vq->used->idx){
       //DEBUG("Surprising len %u response\n", e->len);
 	DEBUG("RECEIVE INTERRUPT FIRED\n");
-  }else{
-
-  	ring = TRANSMIT_QUEUE;
- 	vring = &p_dev->vring[ring];
-  	vq = &vring->vq;
-  	e = &(vq->used->ring[vring->last_seen_used % vq->num]);
-  	len = vq->desc[e->id].len;
-	if(len >= 1){
-		DEBUG("TRANSMIT INTERRUPT FIRED\n");
+ 	     
+        __asm__ __volatile__ ("" : : : "memory"); // software memory barrier
+ 	__sync_synchronize(); // hardware memory barrier
+  
+        //if(vring->last_seen_used != vq->used->idx)
+	  //break;
+      //}
+	e = &(vq->used->ring[vring->last_seen_used % vq->num]);
+ 	len = vq->desc[e->id].len;
+	uint32_t i = 0;
+  	uint64_t *p = (uint64_t *)vq->desc[e->id].addr;
+  	//uint64_t s[vq->desc[e->id].len];
+  	for(i = 0; i < vq->desc[e->id].len; i++){
+  	  printk("%x", *p);
+	  p++;
   	}
-	else{
-		//DEBUG("Surprising len 0 response\n");
-		IRQ_HANDLER_END();
-		//nk_thread_exit(NULL);
-		return 0;
-	}
+  	printk("\n");
+  
+  	free_descriptor(vq,e->id);
+  	vring->last_seen_used += 1;
+        vq->avail->flags = 0;
+  	DEBUG("used index: %x\n", vq->used->idx);
+  	DEBUG("avail index: %x\n", vq->avail->idx);
+  
   }
-  //DEBUG("received buffer:\n");
-  //DEBUG("id is %d, length is %d\n", e->id, vq->desc[e->id].len);
-  uint32_t i = 0;
-  uint64_t *p = (uint64_t *)vq->desc[e->id].addr;
-  //uint64_t s[vq->desc[e->id].len];
-  for(i = 0; i < vq->desc[e->id].len; i++){
-  	printk("%x", *p);
-	p++;
-  }
-  printk("\n");
-  
-  free_descriptor(vq,e->id);
-  DEBUG("avail index: %x\n", vq->avail->idx);
-
-
-  __asm__ __volatile__ ("" : : : "memory"); // software memory barrier
-  __sync_synchronize(); // hardware memory barrier
-  vq->avail->idx--; // it is ok that this wraps around
-  __asm__ __volatile__ ("" : : : "memory"); // software memory barrier
-  __sync_synchronize(); // hardware memory barrier
-  
-  /* re-enable interrupts */ 
-  vq->avail->flags = 0;
-  
   if(ring == RECEIVE_QUEUE && vq->avail->idx == 0){
      // add some new descriptors
      uint32_t j = 0, num_buf = 30;
@@ -605,7 +581,36 @@ static int irq_handler(excp_entry_t * entry, excp_vec_t vec)
   	}
 
   }
-  IRQ_HANDLER_END();
+
+  ring = TRANSMIT_QUEUE;
+  vring = &p_dev->vring[ring];
+  vq = &vring->vq;
+  vq->avail->flags |= VIRTQ_AVAIL_F_NO_INTERRUPT;
+
+  DEBUG("last seen used %d, used idx %d \n", vring->last_seen_used, vq->used->idx);
+  while(vring->last_seen_used < vq->used->idx ){
+	e = &(vq->used->ring[vring->last_seen_used % vq->num]);
+        len = vq->desc[e->id].len;
+ 
+        DEBUG("TRANSMIT INTERRUPT FIRED\n");
+ 	uint32_t i = 0;
+  	uint64_t *p = (uint64_t *)vq->desc[e->id].addr;
+  	//uint64_t s[vq->desc[e->id].len];
+  	for(i = 0; i < vq->desc[e->id].len; i++){
+  	  printk("%x", *p);
+	  p++;
+  	}
+  	printk("\n");
+  
+  	free_descriptor(vq,e->id);
+  	vring->last_seen_used += 1;
+        vq->avail->flags = 0;
+  	DEBUG("used index: %x\n", vq->used->idx);
+  	DEBUG("avail index: %x\n", vq->avail->idx);
+  }
+	
+  DEBUG("returning from interrupt\n");
+  //IRQ_HANDLER_END();
   //nk_thread_exit(NULL);
   return 0;
 }
@@ -616,8 +621,8 @@ static int tx_handler(excp_entry_t* entry, excp_vec_t vec)
 {
   /* read the ISR status reg, and reset it to 0 */
   DEBUG("TX HANDLER  INTERRUPT FIRED;  \n");
-  IRQ_HANDLER_END();
   
+  IRQ_HANDLER_END();
 
   //return 0;
   //write_regb(p_dev, ISR_STATUS, 0); 
@@ -662,7 +667,8 @@ int packet_tx_async(void *v_state, uint64_t packet, uint32_t packet_len, int wai
       struct virtio_packet* to_send = list_entry(curpacket, struct virtio_packet, packet_node);
       DEBUG("at %x\n", to_send);
       if(num == 0)
-         //packet_tx(state, (uint64_t)to_send, sizeof(struct virtio_packet), 0);
+         packet_tx(state, (uint64_t)to_send, sizeof(struct virtio_packet), 0);
+      
       num++;
   }
      
@@ -673,6 +679,7 @@ int packet_tx_async(void *v_state, uint64_t packet, uint32_t packet_len, int wai
 int packet_tx(void *v_state, uint64_t packet, uint32_t packet_len, int wait)
 //static int packet_tx(struct virtio_pci_dev *dev, uint64_t tx)
 {
+  DEBUG("transmitting packet %x of len %d\n", packet, packet_len);
   struct virtio_net_state * state = (struct virtio_net_state *)v_state;
   struct virtio_pci_dev * dev;
   dev  = state->dev;
@@ -688,23 +695,35 @@ int packet_tx(void *v_state, uint64_t packet, uint32_t packet_len, int wait)
   struct virtio_packet_hdr *hdr = malloc(sizeof(struct virtio_packet_hdr));
   memset(hdr, 0, sizeof(struct virtio_packet_hdr));
   hdr->hdr_len = sizeof(struct virtio_packet_hdr); 
-
-  /* copy the address of the header and the payload into the avail ring */
+  /*
+  // copy the address of the header and the payload into the avail ring 
   virtio_enque_request(dev, ring, (uint64_t)hdr,
 	 (uint32_t)(sizeof(struct virtio_packet_hdr)),flags);//flags are set to be VIRTQ_DESC_F_NEXT
   
+  
+  // increment the avail ring buffer index 
+  __asm__ __volatile__ ("" : : : "memory"); // software memory barrier
+  __sync_synchronize(); // hardware memory barrier
+  vq->avail->idx+=1; // it is ok that this wraps around
+  __asm__ __volatile__ ("" : : : "memory"); // software memory barrier
+  __sync_synchronize(); // hardware memory barrier
+  */
   virtio_enque_request(dev, ring, addr, len, 0);
-  
-  /* increment the avail ring buffer index */
-  __asm__ __volatile__ ("" : : : "memory"); // software memory barrier
+   __asm__ __volatile__ ("" : : : "memory"); // software memory barrier
   __sync_synchronize(); // hardware memory barrier
-  vq->avail->idx++; // it is ok that this wraps around
+  vq->avail->idx+=1; // it is ok that this wraps around
   __asm__ __volatile__ ("" : : : "memory"); // software memory barrier
   __sync_synchronize(); // hardware memory barrier
   
+
+
+
   /* notify the device */
   write_regw(dev, QUEUE_NOTIFY, TRANSMIT_QUEUE);
   DEBUG("transmit buffer notification sent %x\n", addr);
+  uint32_t used_idx = dev->vring[ring].vq.used->idx;
+  DEBUG("used->idx: %d\n", used_idx);	
+ 
   /* debug output */
 #ifdef DEBUG_MODE
   uint32_t j = 0;
@@ -720,8 +739,6 @@ int packet_tx(void *v_state, uint64_t packet, uint32_t packet_len, int wait)
   }
   //nk_dump_mem(dev->mem_start, 32);
 
-  uint32_t used_idx = dev->vring[ring].vq.used->idx;
-  DEBUG("used->idx: %d\n", used_idx);	
   DEBUG("desc[0] addr: %x\n", dev->vring[ring].vq.desc[0].addr);
   DEBUG("desc[1] addr: %x\n", dev->vring[ring].vq.desc[1].addr);
   
@@ -881,16 +898,15 @@ static int virtio_net_init(struct virtio_pci_dev *dev)
   for(j = 0; j < num_buf; j++){
   	struct virtio_packet *data = malloc(sizeof(struct virtio_packet));
  	memset(data, 0, sizeof(struct virtio_packet));
-       	__asm__ __volatile__ ("" : : : "memory"); // software memory barrier
+       	virtio_enque_request(dev, ring, (uint64_t)data,(uint32_t)(sizeof(struct virtio_packet)), VIRTQ_DESC_F_WRITE);
+ 	__asm__ __volatile__ ("" : : : "memory"); // software memory barrier
  	__sync_synchronize(); // hardware memory barrier
  	dev->vring[ring].vq.avail->idx += 1; // it is ok that this wraps around
  	__asm__ __volatile__ ("" : : : "memory"); // software memory barrier
  	__sync_synchronize(); // hardware memory barrier
-  	
-    	virtio_enque_request(dev, ring, (uint64_t)data,(uint32_t)(sizeof(struct virtio_packet)), VIRTQ_DESC_F_WRITE);
   }
   //uint32_t used_idx = dev->vring[ring].vq.used->idx;
-  //write_regw(dev, QUEUE_NOTIFY, RECEIVE_QUEUE);
+  write_regw(dev, QUEUE_NOTIFY, RECEIVE_QUEUE);
   //DEBUG("used idex: %d\n", used_idx);
   //DEBUG("used ring: %x\n", dev->vring[ring].vq.used->ring[used_idx]);
  
