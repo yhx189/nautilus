@@ -106,7 +106,6 @@ void virtio_pci_test(struct naut_info * naut ){
    data->data.src[4]=0x34;
    data->data.src[5]=0x56;
   
-   interface->receive = &packet_rx;
    // send packet
    uint32_t wait = 0;
    uint32_t packet_len = sizeof(*tx);
@@ -129,7 +128,10 @@ void virtio_pci_test(struct naut_info * naut ){
    // receive packets
    
  
-   //net_dev->receive(state, data, packet_len, wait);
+   interface->receive = &packet_rx;
+   interface->receive(state, data, packet_len, wait);
+   interface->receive(state, data, packet_len, wait);
+
 }
 
 #ifdef NAUT_CONFIG_NDPC_RT

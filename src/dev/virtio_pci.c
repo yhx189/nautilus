@@ -602,16 +602,16 @@ static int irq_handler(excp_entry_t * entry, excp_vec_t vec)
   	}
   	printk("\n");
   
-  	free_descriptor(vq,e->id);
+  	free_descriptor(vq, e->id);
   	vring->last_seen_used += 1;
         vq->avail->flags = 0;
   	DEBUG("used index: %x\n", vq->used->idx);
   	DEBUG("avail index: %x\n", vq->avail->idx);
   }
-	
-  DEBUG("returning from interrupt\n");
-  //IRQ_HANDLER_END();
+  //vq->avail->flags = 0;	
   //nk_thread_exit(NULL);
+  DEBUG("returning from interrupt\n");
+  IRQ_HANDLER_END();
   return 0;
 }
 
@@ -762,13 +762,25 @@ int packet_rx(void *v_state, uint64_t packet, uint32_t packet_len, int wait)
   uint32_t ring = RECEIVE_QUEUE;
   uint32_t len = sizeof(struct virtio_packet);
   uint16_t flags = VIRTQ_DESC_F_NEXT; 
-  
+  uint32_t j = 0, num_buf = 30;
+  for(j = 0; j < num_buf; j++){
+  	struct virtio_packet *data = malloc(sizeof(struct virtio_packet));
+ 	memset(data, 0, sizeof(struct virtio_packet));
+       	__asm__ __volatile__ ("" : : : "memory"); // software memory barrier
+ 	__sync_synchronize(); // hardware memory barrier
+ 	p_dev->vring[ring].vq.avail->idx += 1; // it is ok that this wraps around
+ 	__asm__ __volatile__ ("" : : : "memory"); // software memory barrier
+ 	__sync_synchronize(); // hardware memory barrier
+  	
+    	virtio_enque_request(p_dev, ring, (uint64_t)data,(uint32_t)(sizeof(struct virtio_packet)), VIRTQ_DESC_F_WRITE);
+  }
+
+  write_regw(dev, QUEUE_NOTIFY, RECEIVE_QUEUE);
   uint32_t used_idx = dev->vring[ring].vq.used->idx;
-  //DEBUG("RX: used->idx: %d\n", used_idx);
+  DEBUG("RX: used->idx: %d\n", used_idx);
    
   uint32_t avail_idx = dev->vring[ring].vq.avail->idx;
-  //DEBUG("RX: avail->idx: %d\n", avail_idx);
-  uint32_t j = 0;
+  DEBUG("RX: avail->idx: %d\n", avail_idx);
 #ifdef DEBUG_MODE
  /* increment the avail ring buffer index and notify the device*/
   uint32_t num_buf = 655 / sizeof(struct virtio_packet_data) + 1;
@@ -782,7 +794,6 @@ int packet_rx(void *v_state, uint64_t packet, uint32_t packet_len, int wait)
  }
   
 
-  write_regw(dev, QUEUE_NOTIFY, RECEIVE_QUEUE);
   for(j=0; j<8; j++){
   uint32_t irr_status = apic_read(apic , APIC_GET_IRR(j));
   DEBUG("irr status: %x\n", irr_status);
