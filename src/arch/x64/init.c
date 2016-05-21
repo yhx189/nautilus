@@ -62,11 +62,13 @@
 
 extern spinlock_t printk_lock;
 
-void virtio_pci_test(struct naut_info * naut ){
+void *virtio_pci_test(void * v_naut ){
+   
    printk("Testing virtio network device\n");
    struct virtio_pci_dev* pci_dev;
    uint32_t found_virtio_nic = 0;
    //find the net device by name
+   struct naut_info* naut = v_naut;
    struct pci_info *pci = naut->sys.pci;
    struct list_head *curbus, *curdev;
    struct list_head dev_list;
@@ -86,16 +88,25 @@ void virtio_pci_test(struct naut_info * naut ){
    }   
    if(!found_virtio_nic){
 	printk("Did not find any virtio device, exit\n");
-	return;
+	return NULL;
    }
    struct net_dev_int *interface = &(pci_dev->interface);
  
    struct virtio_packet *tx = malloc(sizeof(struct virtio_packet));
    memset(tx, 0, sizeof(struct virtio_packet));
-   memset(&(tx->data.src), 0x01, 6);
+   tx->data.src[0]=0x52;
+   tx->data.src[1]=0x54;
+   tx->data.src[2]=0x00;
+   tx->data.src[3]=0x12;
+   tx->data.src[4]=0x34;
+   tx->data.src[5]=0x56;
+
+
    memset(&(tx->data.dst), 0xff, 6);
-   memset(&(tx->data.type), 0x01, 2);
-  
+   //memset(&(tx->data.type), 0x01, 2);
+   tx->data.type[0] = 0x08;
+   tx->data.type[1] = 0x06;   
+
    struct virtio_packet *data = malloc(sizeof(struct virtio_packet));
    memset(data, 0, sizeof(struct virtio_packet));
    //memset(data->src, 0x01, 6);
@@ -113,25 +124,23 @@ void virtio_pci_test(struct naut_info * naut ){
    memset(state, 0, sizeof(state));
    (*state).dev = (struct virtio_pci_dev*)pci_dev;
    //printk("%x\n", pci_dev );
-   interface->transmit = &packet_tx;
+    interface->transmit = &packet_tx;
    interface->transmit_async = &packet_tx_async;
    interface->transmit((void*)state, (uint64_t)tx, packet_len, wait); 
 
    printk("back from first transmit\n");
-   interface->transmit((void*)state, (uint64_t)data, sizeof(*data), wait);
+   //interface->transmit((void*)state, (uint64_t)tx, sizeof(*tx), wait);
    
 
    //nk_sleep(1000);
    uint32_t i = 0;
-   for(i = 0; i < 5; i++)
-	interface->transmit_async((void*)state, (uint64_t)data, sizeof(*data), wait);
+   //for(i = 0; i < 5; i++)
+	//interface->transmit_async((void*)state, (uint64_t)tx, sizeof(*tx), wait);
    // receive packets
-   
- 
    interface->receive = &packet_rx;
    interface->receive(state, data, packet_len, wait);
    interface->receive(state, data, packet_len, wait);
-
+   return NULL;
 }
 
 #ifdef NAUT_CONFIG_NDPC_RT
@@ -338,7 +347,9 @@ init (unsigned long mbd,
     runtime_init();
 
     virtio_pci_init(naut);
-    virtio_pci_test(naut);
+    nk_thread_id_t t;
+    nk_thread_start(virtio_pci_test, naut, NULL, 0, 0, &t, -1);
+    //virtio_pci_test(naut);
     printk("Nautilus boot thread yielding (indefinitely)\n");
     /* we don't come back from this */
     idle(NULL, NULL);
