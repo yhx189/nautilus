@@ -129,13 +129,13 @@ void *virtio_pci_test(void * v_naut ){
    interface->transmit((void*)state, (uint64_t)tx, packet_len, wait); 
 
    printk("back from first transmit\n");
-   //interface->transmit((void*)state, (uint64_t)tx, sizeof(*tx), wait);
+   interface->transmit((void*)state, (uint64_t)tx, sizeof(*tx), wait);
    
 
    //nk_sleep(1000);
    uint32_t i = 0;
-   //for(i = 0; i < 5; i++)
-	//interface->transmit_async((void*)state, (uint64_t)tx, sizeof(*tx), wait);
+   for(i = 0; i < 5; i++)
+	interface->transmit_async((void*)state, (uint64_t)tx, sizeof(*tx), wait);
    // receive packets
    interface->receive = &packet_rx;
    interface->receive(state, data, packet_len, wait);
