@@ -644,41 +644,6 @@ out:
 }
 
 
-// merge tx and rx in a single handler
-static int tx_handler(excp_entry_t* entry, excp_vec_t vec)
-{
-  /* read the ISR status reg, and reset it to 0 */
-  DEBUG("TX HANDLER  INTERRUPT FIRED;  \n");
-  
-  IRQ_HANDLER_END();
-
-  //return 0;
-  //write_regb(p_dev, ISR_STATUS, 0); 
-   
-  /* disable further interrupts */
-   
-  uint32_t ring = TRANSMIT_QUEUE;
-  struct virtio_pci_vring *vring = &p_dev->vring[ring];
-  volatile struct virtq *vq = &vring->vq;
-
-
-  // disable interrupts
-  vq->avail->flags |= VIRTQ_AVAIL_F_NO_INTERRUPT;
-
-  /* free the descriptors */
-  struct virtq_used_elem *e = &(vq->used->ring[vring->last_seen_used % vq->num]);
-
-  if (e->len < 1) { 
-      DEBUG("Surprising len %u response\n", e->len);
-    }
-
-  free_descriptor(vq,e->id);
-
-  /* re-enable interrupts */ 
-  vq->avail->flags = 0;
-  return 0;
-}
-
 int packet_tx_async(void *v_state, uint64_t packet, uint32_t packet_len, int wait)
 { 
   struct virtio_net_state* state = (struct virtio_net_state*) v_state;
@@ -905,16 +870,9 @@ static int virtio_net_init(struct virtio_pci_dev *dev)
   val &= MY_GUEST_FEATURES;
   DEBUG("negotiated features: 0x%0x\n", val);
   
-  // set bit 24 to 0
-
-  // set bit 17 to 0
-
- 
   write_regl(dev, GUEST_FEATURES, val); 
 
   
-  //val = read_regl(dev,GUEST_FEATURES);
-  //DEBUG("guest features: 0x%0x\n",val);
   
   /* give a virtual mac address to the device if not assigned */
   
@@ -929,32 +887,11 @@ static int virtio_net_init(struct virtio_pci_dev *dev)
   p_dev = dev;
   register_int_handler(0xe4, irq_handler, NULL);
   nk_unmask_irq(0xb);
-  /*
-  struct virtio_packet *tx = malloc(sizeof(struct virtio_packet));
-  memset(tx, 0, sizeof(struct virtio_packet));
-  memset(&(tx->data.src), 0x01, 6);
-  memset(&(tx->data.dst), 0xff, 6);
-  memset(&(tx->data.type), 0x01, 2);
-  
-  struct virtio_packet_data *data = malloc(sizeof(struct virtio_packet_data));
-  memset(data, 0, sizeof(struct virtio_packet_data));
-  //memset(data->src, 0x01, 6);
-  data->src[0]=0x52;
-  data->src[1]=0x54;
-  data->src[2]=0x00;
-  data->src[3]=0x12;
-  data->src[4]=0x34;
-  data->src[5]=0x56;
-  memset(data->dst, 0xff, 6);
-  */
-  //nk_dump_mem(data, sizeof(struct virtio_packet_data));
+   
   struct virtio_net_state* state = malloc(sizeof(struct virtio_net_state));
   state->dev = (struct virtio_pci_dev*)dev;
-  //packet_tx(state, (uint64_t)tx, (uint32_t)sizeof(struct virtio_packet) ,0);
-  //packet_tx(state, (uint64_t)data, (uint32_t)sizeof(struct virtio_packet) ,0);
   
 
-  //packet_tx(dev, (uint64_t)data);
   
   uint32_t mac1 = read_regb(dev, MAC_ADDR_1);
   uint32_t mac2 = read_regb(dev, MAC_ADDR_2);
@@ -967,15 +904,6 @@ static int virtio_net_init(struct virtio_pci_dev *dev)
   uint32_t ring = RECEIVE_QUEUE;
   struct virtio_packet_hdr *hdr = malloc(sizeof(struct virtio_packet_hdr));
   memset(hdr, 0, sizeof(struct virtio_packet_hdr));
-  /*  
-  __asm__ __volatile__ ("" : : : "memory"); // software memory barrier
-  __sync_synchronize(); // hardware memory barrier
-  dev->vring[ring].vq.avail->idx += 1; // it is ok that this wraps around
- __asm__ __volatile__ ("" : : : "memory"); // software memory barrier
-  __sync_synchronize(); // hardware memory barrier	
-
-  virtio_enque_request(dev, ring, (uint64_t)hdr, (uint32_t)(sizeof(struct virtio_packet_hdr)),VIRTQ_DESC_F_NEXT);
-  */
   uint32_t j;
   uint32_t num_buf = 65535 / sizeof(struct virtio_packet) + 1;
   DEBUG("num_buf: %d\n", num_buf);
@@ -990,15 +918,7 @@ static int virtio_net_init(struct virtio_pci_dev *dev)
  	__asm__ __volatile__ ("" : : : "memory"); // software memory barrier
  	__sync_synchronize(); // hardware memory barrier
   }
-  //uint32_t used_idx = dev->vring[ring].vq.used->idx;
   write_regw(dev, QUEUE_NOTIFY, RECEIVE_QUEUE);
-  //DEBUG("used idex: %d\n", used_idx);
-  //DEBUG("used ring: %x\n", dev->vring[ring].vq.used->ring[used_idx]);
- 
-  //while(1){
-//	packet_rx(dev);
-
- // }
   return 0;
 }
 
