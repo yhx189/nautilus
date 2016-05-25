@@ -572,12 +572,49 @@ static int irq_handler(excp_entry_t * entry, excp_vec_t vec)
 	  p++;
   	}
 	printk("\n");
+        
+
+        // store the mac - ip address pair in cache
+	printk("source ip:\n");
+	p = (uint8_t*) vq->desc[e->id].addr;
+	uint32_t offset = sizeof(struct virtio_packet_hdr) + 0x1a;
+	p+= offset;
+	for(i = 0; i < 4; i++){
+        
+	  printk("%02x", *p);
+	  p++;
+	}
+	printk("\n");
+        printk("source mac:\n");
+	p = (uint8_t*) vq->desc[e->id].addr;
+        offset = sizeof(struct virtio_packet_hdr) + 0x06;
+	p += offset;	
+
+	struct virtio_packet *resp = malloc(sizeof(struct virtio_packet));
+        memset(resp, 0, sizeof(struct virtio_packet));   
+
+	for(i = 0; i < 6; i++){
+        
+	  printk("%02x", *p);
+          resp->data.src[i] = *p;
+	  p++;
+	}
+	printk("\n");
+        
+        resp->data.type[0] = 0x08;
+        resp->data.type[1] = 0x06;
+        // send response
+        struct virtio_net_state * state = malloc(sizeof(struct virtio_net_state));
+        memset(state, 0, sizeof(*state));
+        state->dev = p_dev;
+	packet_tx((void *)state, (uint64_t) resp, sizeof(*resp), 0);
+
 
   	free_descriptor(vq,e->id);
   	vring->last_seen_used += 1;
         vq->avail->flags = 0;
-  	DEBUG("used index: %x\n", vq->used->idx);
-  	DEBUG("avail index: %x\n", vq->avail->idx);
+  	DEBUG("used index: %d\n", vq->used->idx);
+  	DEBUG("avail index: %d\n", vq->avail->idx);
   
   }
   if(ring == RECEIVE_QUEUE && vq->avail->idx == 0){
