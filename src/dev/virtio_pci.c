@@ -585,7 +585,7 @@ static int irq_handler(excp_entry_t * entry, excp_vec_t vec)
 	  p++;
 	}
 	printk("\n");
-        printk("source mac:\n");
+        printk("destination mac:\n");
 	p = (uint8_t*) vq->desc[e->id].addr;
         offset = sizeof(struct virtio_packet_hdr) + 0x06;
 	p += offset;	
@@ -596,11 +596,24 @@ static int irq_handler(excp_entry_t * entry, excp_vec_t vec)
 	for(i = 0; i < 6; i++){
         
 	  printk("%02x", *p);
-          resp->data.src[i] = *p;
+          resp->data.dst[i] = *p;
 	  p++;
 	}
 	printk("\n");
         
+        printk("source mac:\n");
+	p = (uint8_t*) vq->desc[e->id].addr;
+        offset = sizeof(struct virtio_packet_hdr);
+	p += offset;	
+
+	for(i = 0; i < 6; i++){
+        
+	  printk("%02x", *p);
+          resp->data.src[i] = *p;
+	  p++;
+	}
+	printk("\n");
+	
         resp->data.type[0] = 0x08;
         resp->data.type[1] = 0x06;
         // send response
@@ -671,8 +684,6 @@ static int irq_handler(excp_entry_t * entry, excp_vec_t vec)
   vq->avail->flags &= ~VIRTQ_AVAIL_F_NO_INTERRUPT;
 
   goto out;
-  //vq->avail->flags = 0;	
-  //nk_thread_exit(NULL);
 
 out:
   DEBUG("returning from interrupt\n");
