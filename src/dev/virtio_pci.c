@@ -577,15 +577,17 @@ static int irq_handler(excp_entry_t * entry, excp_vec_t vec)
         // store the mac - ip address pair in cache
 	printk("source ip:\n");
 	p = (uint8_t*) vq->desc[e->id].addr;
-	uint32_t offset = sizeof(struct virtio_packet_hdr) + 0x1a;
+	uint32_t offset = sizeof(struct virtio_packet_hdr) + 0x1c;
 	p+= offset;
+	uint8_t target_ip[4];
 	for(i = 0; i < 4; i++){
-        
+          target_ip[i] = *p;
 	  printk("%02x", *p);
 	  p++;
 	}
 	printk("\n");
         printk("destination mac:\n");
+	uint8_t target_mac[6];
 	p = (uint8_t*) vq->desc[e->id].addr;
         offset = sizeof(struct virtio_packet_hdr) + 0x06;
 	p += offset;	
@@ -594,7 +596,7 @@ static int irq_handler(excp_entry_t * entry, excp_vec_t vec)
         memset(resp, 0, sizeof(struct virtio_packet));   
 
 	for(i = 0; i < 6; i++){
-        
+          target_mac[i] = *p;
 	  printk("%02x", *p);
           resp->data.dst[i] = *p;
 	  p++;
@@ -606,16 +608,31 @@ static int irq_handler(excp_entry_t * entry, excp_vec_t vec)
         offset = sizeof(struct virtio_packet_hdr);
 	p += offset;	
 
+ 	uint8_t mac[6]; 
+        mac[0] = read_regb(p_dev, MAC_ADDR_1);
+ 	mac[1] = read_regb(p_dev, MAC_ADDR_2);
+  	mac[2] = read_regb(p_dev, MAC_ADDR_3);
+  	mac[3] = read_regb(p_dev, MAC_ADDR_4);
+  	mac[4] = read_regb(p_dev, MAC_ADDR_5);
+  	mac[5] = read_regb(p_dev, MAC_ADDR_6);
 	for(i = 0; i < 6; i++){
         
-	  printk("%02x", *p);
-          resp->data.src[i] = *p;
+          resp->data.src[i] = mac[i];
+	  printk("%02x", mac[i]);
 	  p++;
 	}
 	printk("\n");
 	
         resp->data.type[0] = 0x08;
         resp->data.type[1] = 0x06;
+
+	set_arp_response(resp->data.data, mac, target_mac, target_ip);
+	resp->data.data[1986] = 0x6f;
+	resp->data.data[1987] = 0x79;
+	resp->data.data[1988] = 0x26;
+	resp->data.data[1989] = 0x38;
+
+        
         // send response
         struct virtio_net_state * state = malloc(sizeof(struct virtio_net_state));
         memset(state, 0, sizeof(*state));
@@ -689,6 +706,40 @@ out:
   DEBUG("returning from interrupt\n");
   IRQ_HANDLER_END();
   return 0;
+}
+
+void set_arp_response(uint8_t* data, uint8_t * mac, uint8_t* target_mac, uint8_t* target_ip)
+{
+   uint8_t i = 0;
+   data[i++] = 0x00;
+   data[i++] = 0x01;
+   data[i++] = 0x08;
+   data[i++] = 0x00;
+   data[i++] = 0x06;
+   data[i++] = 0x04;
+   data[i++] = 0x00;
+   data[i++] = 0x02;
+   data[i++] = mac[0];
+   data[i++] = mac[1];
+   data[i++] = mac[2];
+   data[i++] = mac[3];
+   data[i++] = mac[4];
+   data[i++] = mac[5];
+   data[i++] = 0x0a;
+   data[i++] = 0x00;
+   data[i++] = 0x02;
+   data[i++] = 0x0a;
+   data[i++] = target_mac[0];
+   data[i++] = target_mac[1];
+   data[i++] = target_mac[2];
+   data[i++] = target_mac[3];
+   data[i++] = target_mac[4];
+   data[i++] = target_mac[5];
+   data[i++] = target_ip[0];
+   data[i++] = target_ip[1];
+   data[i++] = target_ip[2];
+   data[i++] = target_ip[3];
+
 }
 
 
