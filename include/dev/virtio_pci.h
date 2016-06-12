@@ -11,7 +11,7 @@ struct virtio_packet_data{
   uint8_t dst[6];  // FF:FF:FF:FF:FF:FF
   uint8_t src[6];
   uint8_t type[2];
-  uint8_t data[2000];
+  uint8_t data[1000];
 }__packed;
 
 struct virtio_packet_hdr{
